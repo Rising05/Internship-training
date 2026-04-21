@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <form action="xx.py" method="GET">
+        <div>
+            <label for="username">用户名：</label>
+            <!-- 文本框 -->
+            <input type="text" id="username" name="username" placeholder="请输入用户名称">
+        </div>
+        <div>
+            <label for="password">密&nbsp;&nbsp;&nbsp;码：</label>
+            <!-- 密码框 -->
+            <input type="password" id="password" name="password" placeholder="请输入密码">
+        </div>
+        <!-- 单选框 -->
+        <div>
+            <label for="gender">性别：</label>
+            <input type="radio" id="male" name="gender" value="male" checked>
+            <label for="male">男</label>
+            <input type="radio" id="female" name="gender" value="female">
+            <label for="female">女</label>
+        </div>
+        <!-- 复选框 checkbox -->
+        <div>
+            <label for="hobby">爱好：</label>
+            <input type="checkbox" id="hobby1" name="hobby" value="reading" checked>
+            <label for="hobby1">阅读</label>
+            <input type="checkbox" id="hobby2" name="hobby" value="sports">
+            <label for="hobby2">运动</label>
+            <input type="checkbox" id="hobby3" name="hobby" value="music">
+            <label for="hobby3">音乐</label>
+        </div>
+        <div>
+            <button type="submit">登录</button>
+        </div>
+    </form>
+</body>
+</html>

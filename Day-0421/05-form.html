@@ -6,6 +6,7 @@
     <title>Document</title>
 </head>
 <body>
+    <!-- 表单 -->
     <form action="xx.py" method="GET">
         <div>
             <label for="username">用户名：</label>
@@ -35,8 +36,35 @@
             <input type="checkbox" id="hobby3" name="hobby" value="music">
             <label for="hobby3">音乐</label>
         </div>
+        <!-- 浏览框 multiple 多选-->
         <div>
-            <button type="submit">登录</button>
+            <label for="file">上传文件：</label>
+            <input type="file" id="file" name="file" multiple>
+        </div>
+        <!-- 下拉列表框 select multiple 多选 size列表框大小 selected 默认选中项-->
+        <div>
+            <label for="country">国家：</label>
+            <select id="country" name="country">
+                <option value="china" selected>中国</option>
+                <option value="usa">美国</option>
+                <option value="japan">日本</option>
+            </select>
+        </div>
+        <!-- 多行文本框 -->
+        <div>
+            <label for="intr">个人简介：</label>
+            <textarea id="intr" name="intr" rows="10" cols="50" placeholder="请输入个人简介"></textarea>
+        </div>
+        <div>
+            <!-- 提交按钮 -->
+            <button>登录</button>
+            <input type="submit" value="注册">
+            <!-- 普通按钮 不能提交 结合js -->
+            <input type="button" value="点击">
+            <!-- 重置按钮 -->
+            <input type="reset" value="重置">
+            <!-- 隐藏域 -->
+            <input type="hidden" name="user_id" value="123456">
         </div>
     </form>
 </body>

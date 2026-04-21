@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+    <!-- 内外部一旦冲突 后面的覆盖前面的 -->
+    <style>
+        /* 内部样式 */
+        p { /*标记选择器*/
+            color: blue;
+            font-size: 18px;
+        }
+    </style>
+    <!-- 外部样式 -->
+    <link rel="stylesheet" href="CSS/style.css"></link>
+</head>
+<body>
+    <!-- 行内样式 优先级最高 -->
+    <h1 style="color: red;font-size: 24px;">行内样式</h1>
+    <p>one</p>
+    <p>two</p>
+    <p>three</p>
+    <b>1</b><b>2</b><b>3</b>
+</body>
+</html>

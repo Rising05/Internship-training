@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+    <style>
+        span{ /*行元素不能设置宽高 不能折行*/
+            background-color: rgba(83, 5, 171, 0.5);
+            width:100px;
+            height: 100px;
+            display:block;/*块级元素 能设置宽高 同时折行*/
+        }
+        div{
+            background-color: rgba(222, 143, 15, 0.3);
+            width:100px;
+            height:100px;
+            display:inline-block;/*内连块 能设置宽高 不能折行*/
+        }
+    </style>
+</head>
+<body>
+    <span>行元素</span>
+    <span>行元素</span>
+    <div>块级元素</div>
+    <div>块级元素</div>
+</body>
+</html>

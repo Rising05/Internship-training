@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        /* class选择器 */
+        .a1{
+            color: red;
+            font-size: 18px;
+        }
+        .bg{
+            background-color: yellow;
+        }
+        #box{
+            color:orange;
+        }
+    </style>
+</head>
+<body>
+    <!--
+        class属性可以有多个值 以空格分隔
+        选择器可以有多个类名 以空格分隔
+    -->
+    <p class="a1">one</p>
+    <p class="bg">two</p>
+    <p class="a1 bg">three</p>
+    <p class="bg a1">four</p>
+    <div class="a1">five</div>
+
+    <!--
+        id选择器
+        id属性只能有一个值
+        选择器只能有一个id值 
+    -->
+    <div id = "box">six</div>
+</body>
+</html>

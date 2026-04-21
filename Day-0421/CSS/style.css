@@ -1,0 +1,12 @@
+b{
+    color: greenyellow;
+    font-size: 20px;
+    padding: 10px; /*内边距*/
+}
+
+p{
+    color:blueviolet;
+    font-size: 30px;
+    padding: 20px; /*内边距*/
+    border: 5px solid red; /*边框*/
+}

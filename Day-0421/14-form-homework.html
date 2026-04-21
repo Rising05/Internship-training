@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>表单标签作业</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 16px;
+            background-color: #f5f5f5;
+            font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+            color: #222;
+        }
+
+        .card {
+            width: 100%;
+            margin: 0 auto;
+            padding: 34px 20px 18px;
+            border: 1px solid #e3e3e3;
+            border-radius: 10px;
+            background-color: #ffffff;
+        }
+
+        h1 {
+            margin: 0 0 34px;
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        form {
+            width: 100%;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-group > label {
+            display: block;
+            margin-bottom: 12px;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        textarea,
+        select {
+            width: 320px;
+            max-width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+            font-size: 16px;
+            outline: none;
+            background-color: #fff;
+        }
+
+        textarea {
+            min-height: 78px;
+            resize: vertical;
+        }
+
+        .choice-group {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .choice-group > span {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .choice-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 16px;
+        }
+
+        .action-btn {
+            width: 100%;
+            height: 38px;
+            border: none;
+            border-radius: 4px;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-submit {
+            background-color: #4caf50;
+        }
+
+        .btn-reset {
+            background-color: #ff4136;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 12px;
+            }
+
+            .card {
+                padding: 24px 16px 16px;
+            }
+
+            input[type="text"],
+            input[type="email"],
+            textarea,
+            select {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>表单标签</h1>
+        <form action="#" method="get">
+            <div class="form-group">
+                <label for="name">姓名：</label>
+                <input type="text" id="name" name="name">
+            </div>
+
+            <div class="form-group">
+                <label for="email">邮箱：</label>
+                <input type="email" id="email" name="email">
+            </div>
+
+            <div class="form-group">
+                <label for="message">留言：</label>
+                <textarea id="message" name="message"></textarea>
+            </div>
+
+            <div class="form-group choice-group">
+                <span>性别：</span>
+                <label class="choice-item" for="male">
+                    <input type="radio" id="male" name="gender" value="male">
+                    男
+                </label>
+                <label class="choice-item" for="female">
+                    <input type="radio" id="female" name="gender" value="female">
+                    女
+                </label>
+            </div>
+
+            <div class="form-group choice-group">
+                <span>爱好：</span>
+                <label class="choice-item" for="reading">
+                    <input type="checkbox" id="reading" name="hobby" value="reading">
+                    阅读
+                </label>
+                <label class="choice-item" for="music">
+                    <input type="checkbox" id="music" name="hobby" value="music">
+                    音乐
+                </label>
+            </div>
+
+            <div class="form-group">
+                <label for="city">城市：</label>
+                <select id="city" name="city">
+                    <option value="" selected>请选择</option>
+                    <option value="beijing">北京</option>
+                    <option value="shanghai">上海</option>
+                    <option value="guangzhou">广州</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <button class="action-btn btn-submit" type="submit">提交</button>
+            </div>
+
+            <div class="form-group">
+                <button class="action-btn btn-reset" type="reset">重置</button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

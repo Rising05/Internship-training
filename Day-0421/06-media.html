@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Media</title>
+</head>
+<body>
+    <!-- 视频 video -->
+    <video src="https://www.w3schools.com/html/mov_bbb.mp4" controls autoplay loop muted></video>
+    
+    <video controls>
+        <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
+        Your browser does not support the video tag.   
+    </video>
+
+    <!-- 音频 audio -->
+    <audio src="https://www.w3schools.com/html/horse.mp3" controls autoplay loop muted></audio>
+
+    <!-- 画布 -->
+    <canvas id="myCanvas" width="200" height="100" style="border:1px solid #000000;"></canvas>
+    <script>
+        // 获取画布和上下文
+        const canvas = document.getElementById('myCanvas');
+        const ctx = canvas.getContext('2d');
+        //画线 moveTo 和 lineTo
+        ctx.beginPath();
+        ctx.moveTo(50, 50);
+        ctx.lineTo(100, 100);
+        ctx.lineTo(150, 50);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(50, 100);
+        ctx.lineTo(100, 50);
+        ctx.strokeStyle = 'red';
+        ctx.lineWidth = 5;
+        ctx.stroke();
+    </script>
+</body>
+</html>

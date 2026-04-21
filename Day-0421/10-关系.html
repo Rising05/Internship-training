@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        .list1{
+            background-color: yellow;
+            width: 200px;
+        }
+        .list1 .item{
+            color: red;
+        }
+
+        .list2>li{
+            color: green;
+        }
+        .list2>li li{
+            color:blueviolet;
+        }
+    </style>
+</head>
+<body>
+    <!-- 关系选择器
+    后代选择器 .list1 .item{color: red;} 选择.list1下的所有.item元素
+    子代选择器 .list1 > .item{color: red;} 选择.list1下的所有直接子元素.item
+    -->
+    <ul class="list1">
+        <li class="item">one</li>
+        <li class="item">two</li>
+        <li class="item">three</li>
+    </ul>
+
+    <ul class="list2">
+        <li>one
+            <ul>
+                <li>one-one</li>
+                <li>one-two</li>
+                <li>one-three</li>
+            </ul>
+        </li>
+        <li>two</li>
+        <li>three</li>
+    </ul>
+</body>
+</html>

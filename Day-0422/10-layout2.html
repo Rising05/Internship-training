@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>layout2</title>
+    <style>
+        /* 
+            布局属性可以嵌套：
+            1. 最外层 .container 负责页面上下结构
+            2. .row 负责每一行内部的左右结构
+            3. 也就是“父级里面套子级，子级里面还能继续开 flex”
+        */
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+        }
+
+        .container {
+            /* 父级弹性盒子 1：控制整体页面上下排列 */
+            display: flex;
+            flex-direction: column; /* 改成纵向排列：头部 -> 内容 -> 内容 -> 底部 */
+            width: 100%;
+            height: 100%;
+            background-color: #ffff00;
+        }
+
+        .row {
+            /* 给儿子加弹性布局属性，让这一行占据可伸缩空间 */
+            flex: 1;
+            display: flex; /* 再次开启 flex，控制这一行中的 3 列横向排列 */
+            margin-top: 10px;
+        }
+
+        .col-1 {
+            /*
+                左边栏不给 flex，而是直接写固定宽度。
+                这样不管屏幕怎么变化，它都保持 150px。
+            */
+            width: 150px;
+            background-color: #ff6600;
+        }
+
+        .col-2 {
+            /*
+                flex: 1 表示分 1 份剩余空间
+                因为它和 .col-3 都是 flex: 1，所以中间和右边平分剩余宽度
+            */
+            flex: 1;
+            background-color: #00ff00;
+        }
+
+        .col-3 {
+            flex: 1;
+            background-color: #ff00ff;
+        }
+
+        footer {
+            width: 100%;
+            height: 100px;
+            background-color: #0000ff;
+            color: #ffffff;
+            font: 24px/100px "Microsoft YaHei";
+            text-align: center;
+        }
+
+        .nav {
+            /*
+                header 本身也当成 flex 容器使用
+                里面放很多 a 标签，让它们在一行中自动排列
+            */
+            display: flex;
+            flex-direction: row; /* 默认就是 row，这里写出来方便记忆 */
+            justify-content: space-around;
+            /*
+                space-around:
+                每个项目左右两边都有间距
+                看起来会比较均匀地铺满整行
+            */
+            align-items: center; /* 让导航文字在 header 的垂直方向居中 */
+            flex-wrap: wrap;
+            /*
+                wrap 表示一行放不下时允许换行
+                因为截图里导航项很多，所以这里必须允许换行
+            */
+            height: 80px;
+        }
+
+        /* 导航 */
+        .nav a {
+            color: #333333;
+            text-decoration: none; /* 去掉 a 标签默认下划线 */
+            background-color: #999999;
+            font: 20px/80px "Microsoft YaHei"; /* 字体大小 20px，行高 80px */
+            padding: 0 20px;
+        }
+
+        .nav a:hover {
+            color: #ff0000;
+            text-decoration: underline; /* 鼠标移入时再加下划线，便于观察 hover 效果 */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="nav">
+            <!-- 
+                这里放多个导航链接，配合 flex-wrap: wrap;
+                当一行排不下时，后面的导航会自动换到下一行
+            -->
+            <a href="#">首页</a>
+            <a href="#">国内</a>
+            <a href="#">国际</a>
+            <a href="#">娱乐</a>
+            <a href="#">社会</a>
+            <a href="#">历史</a>
+            <a href="#">首页</a>
+            <a href="#">国内</a>
+            <a href="#">国际</a>
+        </header>
+
+        <div class="row">
+            <!-- 第一列固定宽度 -->
+            <div class="col-1">1</div>
+            <!-- 第二列占 1 份剩余空间 -->
+            <div class="col-2">2</div>
+            <!-- 第三列也占 1 份剩余空间 -->
+            <div class="col-3">3</div>
+        </div>
+
+        <div class="row">
+            <div class="col-1">1</div>
+            <div class="col-2">2</div>
+            <div class="col-3">3</div>
+        </div>
+
+        <footer>尾</footer>
+    </div>
+</body>
+</html>

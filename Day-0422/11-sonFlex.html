@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>sonFlex</title>
+    <style>
+        .container {
+            /*
+                父元素开启 flex 布局后，子元素才能使用 flex-grow、flex-shrink、flex-basis 这些属性。
+                这里把容器宽度写成 200px，方便你观察“空间不够时”子元素如何收缩。
+            */
+            display: flex;
+            width: 200px;
+            background-color: #ff6600;
+        }
+
+        .container .item {
+            /*
+                这里先给每个子元素一个基础宽度 50px。
+                这样 3 个子元素默认一共占 150px。
+                后面再分别给不同的子元素添加 flex 属性，观察效果差异。
+
+                如果你把这里改成 120px，
+                那么 3 个子元素总宽度会变成 360px，
+                超过父元素 200px，就会更明显地看到 shrink 和 basis 的影响。
+            */
+            width: 50px;
+            text-align: center;
+            color: #333333;
+            line-height: 50px;
+        }
+
+        .container .item:nth-child(1) {
+            /*
+                第一个盒子只设置背景色，不额外设置 flex 子属性。
+                所以它主要按照 width: 50px 来显示。
+
+                如果取消下面这行注释：
+                flex-grow: 1;
+                表示它会去分配父容器中的“剩余空间”。
+                常见理解：谁的 grow 值大，谁分到的剩余空间更多。
+            */
+            background-color: #ffff00;
+        }
+
+        .container .item:nth-child(2) {
+            /*
+                flex-shrink 默认值是 1，表示“空间不够时允许缩小”。
+                这里改成 0，表示它不参与缩放，不愿意被压缩。
+
+                你可以这样理解：
+                当父元素宽度不够时，其他允许收缩的兄弟元素会优先缩小，
+                而当前这个盒子尽量保持自己的原始宽度。
+            */
+            background-color: #ff0000;
+            flex-shrink: 0;
+        }
+
+        .container .item:nth-child(3) {
+            /*
+                flex-basis 表示“基准宽度”或“分配空间前的基础尺寸”。
+                当设置了这个属性后，flex 在计算尺寸时会优先参考它。
+
+                这里写 flex-basis: 100px;
+                表示第三个盒子在 flex 计算时，先按 100px 来算，
+                而不是按上面统一设置的 width: 50px 来算。
+            */
+            background-color: #00ff00;
+            flex-basis: 100px;
+        }
+    </style>
+</head>
+<body>
+    <!--
+        子元素属性：
+
+        1) flex-grow: 值
+           用来分配“剩余空间”。
+           可以把它理解成百分比分栏的思路：
+           谁的值大，谁分到的剩余空间更多。
+
+        2) flex-shrink: 0 | 1
+           默认值是 1，表示空间不够时允许收缩。
+           值越大，收缩得越明显。
+           如果写 0，表示不参与缩放。
+
+        3) flex-basis: 0 | auto | 具体值
+           表示基准宽度。
+           flex-basis 用于设置子项占用的初始空间。
+           如果设置了值，则子项占用的空间优先按设置的值来计算；
+           如果没设置或者写成 auto，那么子项空间会参考 width / height 的值。
+
+        缩写：
+        flex: flex-grow flex-shrink flex-basis;
+
+        例如：
+        flex: 1;
+        在入门阶段可以把它理解成：
+        flex: 1 1 auto;
+        也就是既可以分剩余空间，也允许在空间不足时缩小。
+    -->
+
+    <div class="container">
+        <div class="item">1</div>
+        <div class="item">2</div>
+        <div class="item">3</div>
+    </div>
+</body>
+</html>

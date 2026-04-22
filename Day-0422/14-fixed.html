@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body {
+            height: 3000px;
+        }
+
+        .back {
+            position: fixed;
+            right: 10px;
+            bottom: 10px;
+            width: 80px;
+            height: 80px;
+            text-align: center;
+            line-height: 80px;
+            background-color: #999999;
+        }
+
+        .back a {
+            color: #000000;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <!--
+        (4) fixed 固定定位
+            注意：
+                * 不占位，脱离文档流（压文字）
+                * 参考标准：浏览器的左上角
+                * 当有滚动条时，元素不会随滚动条卷上
+                * 用在哪：右边工具条，搜索框上方固定，返回到顶端等
+    -->
+
+    <p id="top">...</p>
+    <p>...</p>
+    <p>...</p>
+    <p>...</p>
+
+    <div class="box1">one</div>
+    <div class="box2">two</div>
+    <div class="box3">three</div>
+
+    <div class="back">
+        <a href="#top">返回顶端</a>
+    </div>
+</body>
+</html>

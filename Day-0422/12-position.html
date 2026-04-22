@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>position</title>
+    <style>
+        .box1 {
+            /*
+                下面这组是“相对定位”的写法，先保留成注释，方便你和 absolute 对照学习。
+                relative 的特点是：
+                1. 元素还占着原来的位置
+                2. 再根据 top / left 从“原来的位置”移动
+
+                position: relative;
+                top: 100px;
+                left: 50px;
+            */
+            position: absolute;
+            /*
+                absolute 绝对定位：
+                元素会脱离文档流，不再占据原来的位置。
+                然后再根据 top / left 进行移动。
+            */
+            top: 100px;
+            left: 50px;
+            width: 80px;
+            height: 80px;
+            background-color: #ff00ff;
+            z-index: 2;
+            /*
+                z-index 数值越大，层级越靠上。
+                这里 box1 是 2，所以它会压在 box2 和 box3 上面。
+            */
+        }
+
+        .box2 {
+            /*
+                position: relative;
+                top: 40px;
+                left: 30px;
+            */
+            position: absolute;
+            top: 40px;
+            left: 30px;
+            width: 150px;
+            height: 150px;
+            background-color: #00ffff;
+            z-index: 1;
+        }
+
+        .box3 {
+            /*
+                position: relative;
+                top: 20px;
+                left: 30px;
+            */
+            position: absolute;
+            top: 20px;
+            left: 30px;
+            width: 200px;
+            height: 200px;
+            background-color: #0000ff;
+            z-index: 0;
+        }
+    </style>
+</head>
+<body>
+    <!--
+        (1) 格式
+            position: static   默认值
+            position: relative 相对定位
+            position: absolute 绝对定位
+            position: fixed    固定定位
+
+        (2) relative 相对定位
+
+            注意：
+                1. 自身文档流占位
+                   也就是它原来在页面里的位置还保留着。
+
+                2. 参考标准：自身在文档流中的左上角来移动元素位置
+                   也就是说，top / left 是基于“自己原来的位置”来偏移。
+
+                3. 一般用在网页的微调上
+                   因为它会保留原位置，所以更适合做轻微挪动。
+
+        (3) absolute 绝对定位
+
+            注意：
+                1. 脱离文档流，不占原来的位置
+                   所以后面的元素会像它不存在一样继续排版。
+
+                2. 如果父元素没有定位属性，
+                   一般会参考浏览器窗口或更外层已定位的祖先元素来定位。
+
+                3. 多个绝对定位元素放在一起时，很容易发生重叠。
+                   这时候通常配合 z-index 来控制谁在上面。
+
+        总注意：
+            1. left、right、top、bottom 这些属性是用来移动元素位置的
+               但只有“定位元素”才有效，也就是元素要先设置 position。
+
+            2. z-index 实现定位元素的排序，值大在上
+               默认值可以理解为 0。
+               如果元素没有定位，通常单独写 z-index 不会有你想要的效果。
+    -->
+
+    <div class="box1">one</div>
+    <div class="box2">two</div>
+    <div class="box3">three</div>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        .box {
+            /*
+                先给父元素设置 relative，
+                这样里面绝对定位的 span 就会以 .box 作为参考点。
+            */
+            position: relative;
+            width: 200px;
+            height: 200px;
+            border: 3px solid #ff00ff;
+        }
+
+        .box span {
+            /*
+                绝对定位：
+                这里的 top: 0 和 right: 0
+                表示把小圆点贴到 .box 的右上角。
+            */
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 50px;
+            height: 50px;
+            background-color: #ff6600;
+            border-radius: 50%;
+            line-height: 50px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <p>..</p>
+    <p>..</p>
+    <p>..</p>
+    <p>..</p>
+    <p>..</p>
+    <p>..</p>
+
+    <div class="box">
+        <img src="pic1.webp" width="200" height="200">
+        <span>热点</span>
+    </div>
+</body>
+</html>

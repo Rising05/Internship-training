@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        /* 统一样式 */
+        *{
+            margin: 0;
+            padding: 0;
+        }
+        .list li{
+            color: #ff0000;
+        }
+        .list li:nth-of-type(2){
+            color: #0000ff;
+        }
+        .list li:nth-of-type(3){
+            color: #00ff00;
+        }
+
+        button[type="submit"]{
+            background-color: #ff0000;
+            color: #ffffff;
+        }
+        button[type="reset"]{
+            background-color: #0000ff;
+            color: #ffffff;
+        }
+        /* 伪元素 */    
+        p::before{
+            content: "这是一个段落";
+            color: rgba(255, 0, 0, 0.6);
+        }
+        p::after{
+            content: "这是一个段落";
+            color: rgba(43, 0, 255, 0.6);
+        }
+    </style>
+</head>
+<body>
+    <ul class ="list">
+        <li>第一项</li>
+        <li>第二项</li>
+        <li>第三项</li>
+        <li>第四项</li>
+    </ul>
+    <p>1</p>
+    <p>2</p>
+    <p>3</p>
+    <p>4</p>
+    <button type="submit">登录</button><button type="reset">重置</button>
+</body>

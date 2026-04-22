@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        .box{
+            width: 500px;
+            margin: 0 auto; /*结合固定宽，左右自动实现当前box在浏览器的句子居中*/
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            padding: 20px 100px;
+        }
+
+
+         input, select, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+       
+        .frm > div {
+            margin: 30px 0;
+        }
+        .frm > .inputT input{
+            width: auto;
+            margin-right: 20px;
+           
+        }
+       
+        .frm label { 
+            display: block;
+            margin-bottom: 10px
+        }
+
+        .btn {
+            
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer; /* 鼠标样式*/
+            margin-bottom: 10px;
+        }
+
+        .btn1{
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .btn2 {
+            background-color: #f44336;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h1>用户表单</h1>
+        <form action="xx.py" method="GET" class="frm">
+            <div>
+                <label>用户名称:</label>
+                <!-- 文本框 -->
+                <input type="text" name="username" placeholder="请输入用户名称">
+            </div>
+            <div>
+                <!-- 密码框 -->
+                <label>密码名称:</label>
+                <input type="password" name="password" placeholder="请输入密码">
+            </div>
+            <!-- 单选框 radio  checked 选中-->
+            <div class="inputT">
+                <label>性别名称:</label>
+                <input type="radio" name="sex" value="1" checked>男
+                <input type="radio" name="sex" value="2">女
+            </div>
+            <!-- 复选框 checkbox -->
+            <div class="inputT">
+                <label>爱好名称:</label>
+                <input type="checkbox" name="hobby" value="lanqiu" checked>篮球
+                <input type="checkbox" name="hobby" value="zuqiu">足球
+                <input type="checkbox" name="hobby" value="yumaoqiu">羽毛球
+            </div>
+            <!-- 浏览框 file  multiple 多选-->
+            <div>
+                <label>上传文件:</label>
+                <input type="file" name="file" multiple>
+            </div>
+            <!-- 下拉列表框 select multiple 多选 size 列表框大小  selected 默认选中项-->
+            <div>
+                <label>请选择城市:</label>
+                <select name="city">
+                    <option value="beijing">北京</option>
+                    <option value="shanghai" selected>上海</option>
+                    <option value="guangzhou">广州</option>
+                </select>
+            </div>
+            <!-- 多行文本框 textarea rows="10"高 cols="50" 宽-->
+            <div>
+                <label>个人简介:</label>
+                <textarea rows="10" cols="50" name="intr">请输入个人简介</textarea>
+            </div>
+            <div>
+                <!-- 提交按钮 -->
+                <input class="btn btn1" type="submit" value="登录">
+                <!-- 重置按钮 -->
+                <input class="btn btn2" type="reset" value="重置">
+            </div>
+        </form>
+    </div>
+</body>
+</html>

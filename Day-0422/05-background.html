@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        .box{
+            width: 200px;
+            height: 200px;
+            /* background: #00ff00 url(pic1.webp) no-repeat right bottom; */
+            background-color: #00ff00;
+            background-image: url(pic1.webp);
+            background-repeat: repeat-x;/* 默认值：repeat-x水平平铺 repeat-y垂直平铺 repeat no-repeat */
+            background-position: right bottom;
+            background-size:100px 100px;
+        }
+    </style> 
+</head>
+<body>
+    <!-- background：颜色值 图像值 平铺值 位置值
+                    位置值：水平值 垂直值-->
+    <div class="box">
+        内容
+    </div>
+</body>
+</html>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>选择器优先级</title>
+    <style>
+        div { /* 1 */
+            color: rgb(255, 0, 0);
+        }
+
+        .a1 { /* 10 */
+            color: rgb(0, 255, 0);
+        }
+
+        #b1 { /* 100 */
+            color: rgb(0, 0, 255);
+        }
+
+        .list li { /* 10+1 */
+            color: rgb(255, 255, 0);
+        }
+
+        .list .item { /* 10+10 */
+            color: rgb(255, 0, 255);
+        }
+
+        #list li { /* 100+1 */
+            color: rgb(0, 255, 255);
+        }
+
+        table {
+            color: rgb(0, 100, 200);
+        }
+
+        .t1 { /* 10 */
+            color: rgb(200, 200, 0);
+        }
+
+        tr {
+            color: rgb(100, 0, 200);
+        }
+
+        td { /* 1 !important */
+            color: rgb(100, 100, 0);
+        }
+
+        .t1 td { /* 同级比较权重 10+1 */
+            color: rgb(0, 200, 100);
+        }
+    </style>
+</head>
+<body>
+    <!--
+        (1) 权重: 值越大优先级越高
+            * 标记选择器    0001
+            * Class选择器   0010
+            * id选择器      0100
+            * 行内样式      1000
+
+        (2) 继承的优先级最低
+
+        (3) !important 优先级最高
+    -->
+
+    <div class="a1" id="b1">内容</div>
+
+    <ul class="list" id="list">
+        <li class="item">one</li>
+        <li class="item">two</li>
+        <li class="item">three</li>
+    </ul>
+
+    <table class="t1">
+        <tr>
+            <td>文字</td>
+        </tr>
+    </table>
+</body>
+</html>

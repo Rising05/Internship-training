@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <script>
+        // es6语法，DOM操作，事件驱动，函数式编程，高阶函数 filter，map，reduce，promise，async/await
+        //let，const 声明变量
+        let a = 10;
+            a = 30;
+        const PI = 3.14;
+        console.log(a);
+        console.log(PI);
+
+        //数组
+        let arr = [1,2,3,4,5];
+        //访问
+        console.log(arr[0]);
+        //循环
+        for(let i=0;i<arr.length;i++){
+            console.log(arr[i]);
+        }
+        // forEach(fn)
+        arr.forEach(function(item,index){
+            console.log(item,index);
+        });
+        //箭头函数
+        arr.forEach((item,index)=>{
+            console.log(item,index);
+        });
+
+        let arr2 = [
+            {title:'小米', price: 1000},
+            {title:'华为', price: 2000},
+            {title:'苹果', price: 3000},
+            {title:'OPPO', price: 4000}
+        ]
+
+        //filiter(fn) 过滤，返回布尔，true保留，false过滤掉
+        const result1 = arr2.filter(item=>item.price>2000);
+        console.log(result1);
+        
+        // map(fn) 映射，返回新的数组
+        const result2 = arr2.map(item=>{
+            return {
+                title: item.title,
+                price: item.price*0.8,
+                checked: false,
+            }
+        })
+        console.log(result2)
+
+        const result3 = arr2.filter(item=>item.price>2000).map(item=>{
+            return {
+                title: item.title,
+                price: item.price*0.8,
+                checked: false,
+            }
+        })
+        console.log(result3)
+
+        //回调函数 filter(fn)
+        function demo(){
+            //...to do
+            fn() //调用函数, 让程序员完成
+        }
+        demo(()=>{
+            //让程序员完成
+            console.log('回调函数')
+        })
+        
+    </script>
+</body>
+</html>

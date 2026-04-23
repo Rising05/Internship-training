@@ -61,11 +61,21 @@
         // 3. 异步转同步：async/await
         // 1) 函数返回的是Promise对象; 2) await 使用必须带 async 函数
         async function testApi(){
-            let result = await myAxios(6)
-            console.log(result);
+            let result = await myAxios(6) // Promise对象函数
+            console.log(result); // 成功结果
             // ... todo 
         }
         testApi();
+
+        /* 
+            1. 总结 Promise 异步用同步写法，解决回调地狱 和 async/await 真正的异步转同步 
+            2. 状态
+                有三个状态：pending 进行中，fulfilled 已成功，rejected 已失败
+                pending到fulfilled 已成功 （resolve）
+                pending到rejected 已失败 （reject）
+            3. Promise特点：一旦状态改变，就不会再改变（不可逆）
+        */
+
     </script>
 </body>
 </html>

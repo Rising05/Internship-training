@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <script>
+        // 1. 前后端分离开发：SpringBoot 接口 + postman 测试 + 前端框架 + 中间媒介层Ajax,wx.Request()（SpringBoot 接口 + 前端框架）
+        // 2. 中间媒介Ajax,wx,Request() 异步请求；普通程序同步请求
+        // 3. 为什么要使用Promise？：1）能解决回调地狱；2）解决异步并发编程 
+
+        // 回调地狱（模拟异步）：setTImeout, setInterval, setImmediate, ajax, wx.Request(), Promise.then()
+        // setTimeout(()=>{
+        //     console.log('task1');
+        //     setTimeout(()=>{
+        //         console.log('task2');
+        //         setTimeout(()=>{
+        //             console.log('task3');
+        //         },1000)
+        //     },1000)
+        // },1000)
+
+        //用Promise实现异步的同步写法，resolve, reject两个参数，resolve()成功，reject()失败
+        let p1 = new Promise((resolve, reject)=>{
+            setTimeout(()=>{
+                resolve('task1');
+            },1000)
+        })
+        p1.then((res)=>{
+            // res 'task1'的结果
+            console.log(res);
+            // ...todo task2
+            let p2 = new Promise((resolve, reject)=>{
+                setTimeout(()=>{
+                    resolve('task2');
+                },1000)
+            })
+            return p2;
+        }).then((res)=>{
+            console.log(res); // res 'task2'的结果
+        })
+
+        // 2. new Promise(resolve, reject) 创建一个Promise对象
+        function myAxios(num){
+            return new Promise((resolve, reject)=>{
+                if(num > 5){
+                    resolve('成功')
+                }else{
+                    reject('失败')
+                }
+            })
+        }
+        myAxios(6).then((res)=>{
+            console.log(res); // 成功结果
+        }).catch((err)=>{
+            console.log(err); // 失败结果
+        })
+    </script>
+</body>
+</html>

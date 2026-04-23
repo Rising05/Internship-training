@@ -109,6 +109,34 @@
         changeImg();
     }, 2000)
 
+	// 3.鼠标悬停停止播放
+    headers.addEventListener('mouseenter', function(){
+        clearInterval(timer);
+    });
+	headers.addEventListener('mouseleave', function(){
+        timer = setInterval(function(){
+            num++;
+            changeImg();
+        }, 2000)
+    });
+
+	// 4.分页按钮
+	for(let i = 0; i < pages.length; i++){
+        pages[i].addEventListener('click', function(){
+            num = i;
+            changeImg();
+        });
+    }
+
+	// 5.左右按钮
+	leftBtn.addEventListener('click', function(){
+        num--;
+        changeImg();
+    });
+	rightBtn.addEventListener('click', function(){
+        num++;
+        changeImg();
+    });
     // 换图函数
     function changeImg(){
         // 1.边界判断
@@ -126,6 +154,8 @@
         }
         pages[num].className = 'cur';
     }
+
+
     </script>
 </body>
 </html>

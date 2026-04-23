@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <!-- 引入swiper.css -->
+    <link rel="stylesheet" href="./swiper.css" />
+    <style>
+            *{
+				margin: 0;
+				padding:0;
+			}
+			.swiper-container{
+				width:1220px;
+				margin: 0 auto;
+			}
+			.swiper-container img{
+				width:100%;
+			}
+    </style>
+</head>
+<body>
+    <div class="swiper-container">
+		        <div class="swiper-wrapper">
+		            <div class="swiper-slide">
+						<a href="#">
+							<img src="images/tu1.webp" alt="">
+						</a>
+					</div>
+		            <div class="swiper-slide">
+						<a href="#">
+							<img src="images/tu2.jpg" alt="">
+						</a>
+					</div>
+		            <div class="swiper-slide">
+						<a href="#">
+							<img src="images/tu3.webp" alt="">
+						</a>
+					</div>
+		        </div>
+		        <!-- Add Pagination -->
+		        <div class="swiper-pagination"></div>
+		        <!-- Add Arrows -->
+		        <div class="swiper-button-next"></div>
+		        <div class="swiper-button-prev"></div>
+	</div>
+    <!-- 引入swiper.js -->
+    <script src="./swiper.js"></script>
+	<script>
+		let mySwiper = new Swiper('.swiper-container',{
+			loop:true,
+			autoplay:true,
+			pagination:'.swiper-pagination',
+			paginationClickable:true,
+			nextButton:'.swiper-button-next',
+			prevButton:'.swiper-button-prev',
+			autoplay:2500,
+			autoplayDisableOnInteraction:true,
+		})
+	</script>
+</body>
+</html>

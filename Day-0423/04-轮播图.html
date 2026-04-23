@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+			*{
+			    margin: 0;
+				padding:0;
+			}
+			ul,ol{ /*去掉项目符号*/
+				list-style: none;
+			}
+			a{
+				color:#333333;
+				text-decoration: none;
+			}
+			a:hover{
+				color:#ff0000;
+			}
+			.carousel{
+				position: relative;
+				width:990px;
+				height: 450px;
+				margin: 0 auto;
+				overflow: hidden;/* overflow: hidden; 隐藏重要 */
+			}
+			.carousel img{
+				width:100%;
+				height:450px;
+			}
+			/* 足够宽或足够高 (重要)*/
+			.imgs-wrap{
+				display: flex;
+				width:2970px;
+				/* margin-left:-990px;js改 margin-left */
+				transition: all 2s;
+			}
+			.pages{
+				display: flex;
+				position: absolute; /*定位*/
+				left:200px;
+				bottom:30px;
+				width: 150px;
+				justify-content: space-around
+			}
+			.pages li{
+				width:16px;
+				height: 16px;
+				background: #0000ff;
+				border-radius: 50%;
+			}
+			.pages li.cur{
+				background: #ff6600;
+			}
+			.leftbtn,.rightbtn{
+				position: absolute;
+				top:225px;
+				font:70px Arial;
+				color:#ffffff;
+			}
+			.leftbtn{
+				left:30px;
+			}
+			.rightbtn{
+				right:30px;
+			}
+		</style>
+    
+</head>
+<body>
+    <div class="carousel">
+			<!-- 1.图 -->
+			<ul class="imgs-wrap">
+				<li class="item">
+					<a href="#"><img src="images/tu1.webp" alt=""></a>
+				</li>
+				<li class="item">
+					<a href="#"><img src="images/tu2.jpg" alt=""></a>
+				</li>
+				<li class="item">
+					<a href="#"><img src="images/tu3.webp" alt=""></a>
+				</li>
+			</ul>
+			<!-- 2.分页 -->
+			<ul class="pages">
+				<li class="cur"></li>
+				<li></li>
+				<li></li>
+			</ul>
+			<!-- 3.左右按钮 -->
+			<div class="leftbtn">&lt;</div>
+			<div class="rightbtn">&gt;</div>
+	</div>
+
+    <script> 
+    let num = 0;
+    // 1.获取元素
+    let headers = document.querySelector('.carousel');
+    let imgsWrap = document.querySelector('.imgs-wrap');
+    let pages = document.querySelectorAll('.pages li');
+    let leftBtn = document.querySelector('.leftbtn');
+    let rightBtn = document.querySelector('.rightbtn');
+
+    // 2.自动播放
+    timer = setInterval(function(){
+        num++;
+        changeImg();
+    }, 2000)
+
+    // 换图函数
+    function changeImg(){
+        // 1.边界判断
+        if(num > 2){
+            num = 0;
+        }
+        if(num < 0){
+            num = 2;
+        }
+        // 2.获取图片宽度
+        imgsWrap.style.marginLeft = -990 * num + 'px';
+        // 3.切换分页
+        for(let i = 0; i < pages.length; i++){
+            pages[i].className = '';
+        }
+        pages[num].className = 'cur';
+    }
+    </script>
+</body>
+</html>

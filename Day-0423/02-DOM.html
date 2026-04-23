@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <div class="box" id="wrap" onclick="runH()">内容</div>
+    <ul id="list">
+        <li>1</li>
+        <li>2</li>
+        <li>3</li>
+        <li>4</li>
+    </ul>
+    <script>
+        // 1.找DOM操作：找一个对象
+        // let wrap = document.getElementById('wrap')
+        let wrap = document.querySelector('.box')
+        console.log(wrap);
+
+        // 2.找DOM操作：找多个对象
+        let list = document.querySelectorAll('#list li')
+        console.log(list);
+        console.log(list[0]);
+
+        // DOM0 操作
+        function runH(){
+            // wrap.style.backgroundColor = '#ff0000'
+            // 条件判断
+            if(wrap.style.backgroundColor == 'red'){
+                wrap.style.backgroundColor = 'blue'
+            }else{
+                wrap.style.backgroundColor = 'red'
+            }
+            // 添加class名称 add() remove()
+            wrap.classList.add('active')
+            // wrap.className = 'active'
+        }
+        // 多个对象
+        for(let i = 0; i < list.length; i++){
+            // list[i].onclick = function(){
+            //     console.log(this.innerHTML);
+            // }
+
+            // 事件监听 DOM2
+            list[i].addEventListener('click', function(){
+                console.log(this.innerHTML);
+            })
+        }
+    </script>      
+</body>
+</html>

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <script>
+        // 1.条件
+        let score = 88;
+        if(score >= 90){
+            console.log("优秀");
+        }else if(score >= 80){
+            console.log("良好");
+        }else if(score >= 70){
+            console.log("及格");
+        }else{
+            console.log("不及格");
+        }
+
+        // 2.函数式编程 VS 对象编程(小程序)
+        // 对象编程
+        let obj = {
+            name: "张三",
+            age: 18,
+            say: function(){
+                return "我的名字是" + this.name + "，我的年龄是" + this.age;
+            }
+        }
+        console.log(obj.name);
+        console.log(obj.say());
+
+        function Page(options){
+            // ...todo
+        }
+        Page({
+            title:'首页',
+            data:{
+                name: "张三",
+                age: 18
+            },
+            onLoad: function(){
+                console.log(this.data.name);
+            }
+        })
+
+        // 函数式编程
+        function say(name, age){
+            return "我的名字是" + name + "，我的年龄是" + age;
+        }
+        console.log(say("张三", 18));
+
+        // 补0
+       const formatNumber = n => {
+           // 确保转换为字符串，避免数字类型直接访问索引的问题，并修正 toString 拼写错误
+           const str = String(n);
+           // 如果字符串长度大于1（即第二位存在），则直接返回，否则补0
+           return str.length > 1 ? str : `0${str}`;
+       };
+       
+       // 时间格式化
+       const formatDate = function(date) {
+            // 增加输入验证，防止传入无效日期导致崩溃
+            if (!(date instanceof Date) || isNaN(date.getTime())) {
+                throw new Error('Invalid date object');
+            }
+        
+            let year = date.getFullYear();
+            let month = date.getMonth() + 1;
+            let day = date.getDate();
+            let hour = date.getHours();
+            let minute = date.getMinutes();
+            let second = date.getSeconds();
+        
+            // 模版字符串 ‘xxx${a}xxxx’ 解析变量
+            // return `${year}-${formatNumber(month)}-${formatNumber(day)} ${formatNumber(hour)}:${formatNumber(minute)}:${formatNumber(second)}`;
+            // es6写法
+            return `${[year,moth,day].map(formatNumber).join('-')} ${[hour,minute,second].map(formatNumber).join(':')}`
+        };
+       console.log(formatDate(new Date()));
+       
+    </script>
+</body>
+</html>

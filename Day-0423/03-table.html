@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        *{
+            margin:0;
+            padding:0;
+        }
+        a{
+            color:#333333;
+            text-decoration: none;
+        }
+        a:hover{
+            color:#ff6600;
+        }
+        .tabs{
+            display: flex;
+            flex-direction: column;
+            width:400px;
+            margin: 0 auto;
+            border:1px solid #999999;
+        }
+        .tabs .title{
+            display: flex;
+            height: 45px;
+            border-bottom: 1px solid #999999;
+        }
+        .title a{
+            display: block;
+            padding:0 50px;
+            font:bold 16px Arial,"Microsoft Yahei";
+            line-height: 45px;
+        }
+        .title a.current{
+            background: #ff6600;
+            color:#ffffff;
+        }
+        .title a:nth-of-type(2){
+            border-left:1px solid #999999;
+            border-right:1px solid #999999;
+        }
+        .tabs .con{
+            height: 300px;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <!-- Tabs -->
+    <div class="tabs">
+			<!-- 1.标题 -->
+			<div class="title">
+				<a href="#" class="current" data-id="0">小米</a>
+				<a href="#" data-id="1">华为</a>
+				<a href="#" data-id="2">联想</a>
+			</div>
+			<!-- 2.内容 -->
+			<div class="con active">小米内容</div>
+	</div>
+
+    <script> 
+        const content = ["小米内容","华为内容","联想内容"]
+        // 1.获取元素
+        const titles = document.querySelectorAll('.title a')
+        const con = document.querySelector('.con')
+        // 2.给每个标题添加点击事件
+        for(let i = 0; i < titles.length; i++){
+            titles[i].addEventListener('click',function(){ 
+                // 3.1 其他去掉标题背景
+                for(let j = 0; j < titles.length; j++){
+                    // titles[j].className = ''
+                    titles[j].classList.remove('current')
+                }
+
+                // 3.2 给当前标题添改背景
+                // this.classList.add('current')
+                this.className = 'current'
+
+                // 3.3 获取内容
+                con.innerHTML = content[this.dataset.id]
+                // con.innerHTML = content[this.getAttribute('data-id')]
+            })
+        }
+    </script>
+</body>
+</html>

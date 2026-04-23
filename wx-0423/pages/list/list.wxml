@@ -1,0 +1,3 @@
+<!--pages/list/list.wxml-->
+<!-- 小程序框架，没有标签只有封装的组件 -->
+<view>list页面</view>

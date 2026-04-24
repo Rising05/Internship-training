@@ -1,4 +1,5 @@
 const {
+  idolDirectory,
   idolOptions,
   categoryOptions,
   conditionOptions,
@@ -187,6 +188,7 @@ function getHomeData(params = {}) {
     quickEntries: homeQuickEntries,
     searchSuggestions,
     idolOptions,
+    idolDirectory,
     categoryOptions,
     feedModes,
     totalCount,
@@ -230,10 +232,16 @@ function toggleProductFavorite(id) {
 
 function getPublishPageData() {
   const profile = getProfile()
+  const publishCategoryOptions = categoryOptions.slice(1)
   return simulate({
     publishTypeOptions,
     idolOptions: idolOptions.slice(1),
-    categoryOptions: categoryOptions.slice(1),
+    idolDirectory,
+    categoryOptions: publishCategoryOptions,
+    categorySections: {
+      common: publishCategoryOptions.slice(0, 5),
+      extra: publishCategoryOptions.slice(5),
+    },
     conditionOptions,
     tradeTypeOptions,
     seller: {

@@ -44,39 +44,67 @@
     </view>
 
     <view class="section-block">
-      <view class="section-head">
-        <text class="section-title">担位筛选</text>
+      <view class="idol-filter-head">
+        <view class="idol-filter-title-row">
+          <text class="section-title">担位筛选</text>
+          <view class="idol-type-switch">
+            <view
+              wx:for="{{idolTypeTabs}}"
+              wx:key="key"
+              class="idol-type-tab {{idolTypeTab === item.key ? 'idol-type-tab-active' : ''}}"
+              data-type="{{item.key}}"
+              bindtap="handleIdolTypeTabChange"
+            >
+              {{item.label}}
+            </view>
+          </view>
+        </view>
         <text class="section-subtitle">按担名快速定位商品</text>
       </view>
-      <view class="chip-grid">
+
+      <view class="idol-region-switch">
+        <view
+          wx:for="{{idolRegionTabs}}"
+          wx:key="key"
+          class="idol-region-tab {{idolRegionTab === item.key ? 'idol-region-tab-active' : ''}}"
+          data-region="{{item.key}}"
+          bindtap="handleIdolRegionTabChange"
+        >
+          {{item.label}}
+        </view>
+      </view>
+
+      <view class="idol-chip-wrap {{!isIdolListExpanded && canExpandIdolList ? 'idol-chip-wrap-collapsed' : ''}}">
+        <view class="chip-grid idol-chip-grid">
+          <filter-chip
+            wx:for="{{visibleIdolOptions}}"
+            wx:key="*this"
+            label="{{item}}"
+            value="{{item}}"
+            active="{{activeIdol === item}}"
+            bind:select="handleIdolSelect"
+          />
+        </view>
+      </view>
+
+      <view class="idol-group-actions">
         <filter-chip
-          wx:for="{{visibleIdolOptions}}"
-          wx:key="*this"
-          label="{{item}}"
-          value="{{item}}"
-          active="{{activeIdol === item}}"
-          bind:select="handleIdolSelect"
+          wx:if="{{canExpandIdolList && !isIdolListExpanded}}"
+          label="更多"
+          value="more"
+          bind:select="handleToggleIdolListExpand"
+        />
+        <filter-chip
+          wx:if="{{canExpandIdolList && isIdolListExpanded}}"
+          label="收起"
+          value="less"
+          bind:select="handleToggleIdolListExpand"
         />
         <view
-          wx:if="{{hiddenIdolCount > 0 && !isIdolExpanded}}"
-          class="chip-action"
-          bindtap="handleToggleIdolExpand"
-        >
-          更多
-        </view>
-        <view
-          wx:if="{{isIdolExpanded}}"
           class="chip-action {{showCustomIdolInput ? 'chip-action-active' : ''}}"
           bindtap="handleOpenCustomIdol"
         >
           其他
-        </view>
-        <view
-          wx:if="{{isIdolExpanded}}"
-          class="chip-action chip-action-soft"
-          bindtap="handleToggleIdolExpand"
-        >
-          收起
         </view>
       </view>
       <view wx:if="{{showCustomIdolInput}}" class="custom-idol-box">

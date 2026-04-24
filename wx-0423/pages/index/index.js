@@ -2,7 +2,16 @@ const services = require('../../services/index')
 const { getCurrentRoute, syncTabBar } = require('../../utils/tabbar')
 
 const DEFAULT_QUICK_ENTRY_COUNT = 4
-const DEFAULT_IDOL_OPTION_COUNT = 6
+const IDOL_COLLAPSED_THRESHOLD = 10
+const IDOL_TYPE_TABS = [
+  { key: 'group', label: '团体' },
+  { key: 'solo', label: '个人' },
+]
+const IDOL_REGION_TABS = [
+  { key: 'kpop', label: 'KPOP' },
+  { key: 'jpop', label: 'JPOP' },
+  { key: 'cpop', label: '内娱' },
+]
 
 function splitColumns(list) {
   const leftColumn = []
@@ -30,12 +39,15 @@ function buildVisibleQuickEntries(entries, expanded, activeCategory) {
   return visible
 }
 
-function buildVisibleIdolOptions(options, expanded, activeIdol) {
-  const visible = expanded ? options.slice() : options.slice(0, DEFAULT_IDOL_OPTION_COUNT)
-  if (activeIdol && activeIdol !== '全部' && !options.includes(activeIdol) && !visible.includes(activeIdol)) {
-    visible.push(activeIdol)
+function buildVisibleIdolOptions(directory, typeTab, regionTab) {
+  if (!directory || !directory[typeTab] || !directory[typeTab][regionTab]) {
+    return ['全部']
   }
-  return visible
+  return ['全部'].concat(directory[typeTab][regionTab])
+}
+
+function isCustomIdolValue(idolOptions, value) {
+  return !!value && value !== '全部' && !idolOptions.includes(value)
 }
 
 Page({
@@ -47,9 +59,15 @@ Page({
     hero: {},
     quickEntries: [],
     searchSuggestions: [],
+    idolDirectory: {},
     idolOptions: [],
+    idolTypeTabs: IDOL_TYPE_TABS,
+    idolRegionTabs: IDOL_REGION_TABS,
+    idolTypeTab: 'group',
+    idolRegionTab: 'kpop',
     visibleIdolOptions: [],
-    hiddenIdolCount: 0,
+    canExpandIdolList: false,
+    isIdolListExpanded: false,
     categoryOptions: [],
     feedModes: [],
     visibleQuickEntries: [],
@@ -58,7 +76,6 @@ Page({
     activeCategory: '全部',
     activeFeed: 'latest',
     isCategoryExpanded: false,
-    isIdolExpanded: false,
     showCustomIdolInput: false,
     customIdolDraft: '',
     pageIndex: 1,
@@ -81,7 +98,6 @@ Page({
 
   getExpandStatePayload(nextState = {}) {
     const quickEntries = nextState.quickEntries || this.data.quickEntries
-    const idolOptions = nextState.idolOptions || this.data.idolOptions
     const activeIdol = typeof nextState.activeIdol === 'string' ? nextState.activeIdol : this.data.activeIdol
     const activeCategory = typeof nextState.activeCategory === 'string'
       ? nextState.activeCategory
@@ -89,15 +105,15 @@ Page({
     const isCategoryExpanded = typeof nextState.isCategoryExpanded === 'boolean'
       ? nextState.isCategoryExpanded
       : this.data.isCategoryExpanded
-    const isIdolExpanded = typeof nextState.isIdolExpanded === 'boolean'
-      ? nextState.isIdolExpanded
-      : this.data.isIdolExpanded
+    const idolDirectory = nextState.idolDirectory || this.data.idolDirectory
+    const idolTypeTab = nextState.idolTypeTab || this.data.idolTypeTab
+    const idolRegionTab = nextState.idolRegionTab || this.data.idolRegionTab
 
     return {
       visibleQuickEntries: buildVisibleQuickEntries(quickEntries, isCategoryExpanded, activeCategory),
       hiddenQuickEntryCount: Math.max(0, quickEntries.length - DEFAULT_QUICK_ENTRY_COUNT),
-      visibleIdolOptions: buildVisibleIdolOptions(idolOptions, isIdolExpanded, activeIdol),
-      hiddenIdolCount: Math.max(0, idolOptions.length - DEFAULT_IDOL_OPTION_COUNT),
+      visibleIdolOptions: buildVisibleIdolOptions(idolDirectory, idolTypeTab, idolRegionTab),
+      canExpandIdolList: buildVisibleIdolOptions(idolDirectory, idolTypeTab, idolRegionTab).length - 1 > IDOL_COLLAPSED_THRESHOLD,
     }
   },
 
@@ -123,11 +139,12 @@ Page({
     const columns = splitColumns(result.items)
     const expandState = this.getExpandStatePayload({
       quickEntries: result.quickEntries,
-      idolOptions: result.idolOptions,
+      idolDirectory: result.idolDirectory,
       activeIdol: this.data.activeIdol,
       activeCategory: this.data.activeCategory,
       isCategoryExpanded: this.data.isCategoryExpanded,
-      isIdolExpanded: this.data.isIdolExpanded,
+      idolTypeTab: this.data.idolTypeTab,
+      idolRegionTab: this.data.idolRegionTab,
     })
 
     this.setData({
@@ -137,6 +154,7 @@ Page({
       hero: result.hero,
       quickEntries: result.quickEntries,
       searchSuggestions: result.searchSuggestions,
+      idolDirectory: result.idolDirectory,
       idolOptions: result.idolOptions,
       categoryOptions: result.categoryOptions,
       feedModes: result.feedModes,
@@ -184,7 +202,6 @@ Page({
       activeIdol: nextActiveIdol,
       showCustomIdolInput: false,
       customIdolDraft: '',
-      ...this.getExpandStatePayload({ activeIdol: nextActiveIdol }),
     })
     this.loadHome({ reset: true })
   },
@@ -215,27 +232,78 @@ Page({
     })
   },
 
-  handleToggleIdolExpand() {
-    const isIdolExpanded = !this.data.isIdolExpanded
+  handleIdolTypeTabChange(event) {
+    const nextTypeTab = event.currentTarget.dataset.type
+    if (!nextTypeTab || nextTypeTab === this.data.idolTypeTab) {
+      return
+    }
+
+    const nextVisibleIdolOptions = buildVisibleIdolOptions(
+      this.data.idolDirectory,
+      nextTypeTab,
+      this.data.idolRegionTab
+    )
+    const keepCustom = isCustomIdolValue(this.data.idolOptions, this.data.activeIdol)
+    const nextActiveIdol = keepCustom || nextVisibleIdolOptions.includes(this.data.activeIdol)
+      ? this.data.activeIdol
+      : '全部'
+
     this.setData({
-      isIdolExpanded,
-      showCustomIdolInput: isIdolExpanded ? this.data.showCustomIdolInput : false,
-      ...this.getExpandStatePayload({ isIdolExpanded }),
+      idolTypeTab: nextTypeTab,
+      activeIdol: nextActiveIdol,
+      isIdolListExpanded: false,
+      ...this.getExpandStatePayload({
+        idolTypeTab: nextTypeTab,
+        activeIdol: nextActiveIdol,
+      }),
     })
+    this.loadHome({ reset: true })
+  },
+
+  handleIdolRegionTabChange(event) {
+    const nextRegionTab = event.currentTarget.dataset.region
+    if (!nextRegionTab || nextRegionTab === this.data.idolRegionTab) {
+      return
+    }
+
+    const nextVisibleIdolOptions = buildVisibleIdolOptions(
+      this.data.idolDirectory,
+      this.data.idolTypeTab,
+      nextRegionTab
+    )
+    const keepCustom = isCustomIdolValue(this.data.idolOptions, this.data.activeIdol)
+    const nextActiveIdol = keepCustom || nextVisibleIdolOptions.includes(this.data.activeIdol)
+      ? this.data.activeIdol
+      : '全部'
+
+    this.setData({
+      idolRegionTab: nextRegionTab,
+      activeIdol: nextActiveIdol,
+      isIdolListExpanded: false,
+      ...this.getExpandStatePayload({
+        idolRegionTab: nextRegionTab,
+        activeIdol: nextActiveIdol,
+      }),
+    })
+    this.loadHome({ reset: true })
   },
 
   handleOpenCustomIdol() {
     const nextDraft = this.data.idolOptions.includes(this.data.activeIdol) ? '' : this.data.activeIdol
     this.setData({
-      isIdolExpanded: true,
       showCustomIdolInput: true,
       customIdolDraft: nextDraft,
-      ...this.getExpandStatePayload({ isIdolExpanded: true }),
     })
   },
 
   handleCustomIdolInput(event) {
     this.setData({ customIdolDraft: event.detail.value })
+  },
+
+  handleToggleIdolListExpand() {
+    this.setData({
+      isIdolListExpanded: !this.data.isIdolListExpanded,
+    })
   },
 
   handleApplyCustomIdol() {
@@ -250,13 +318,8 @@ Page({
 
     this.setData({
       activeIdol: nextActiveIdol,
-      isIdolExpanded: true,
       showCustomIdolInput: true,
       customIdolDraft: nextActiveIdol,
-      ...this.getExpandStatePayload({
-        activeIdol: nextActiveIdol,
-        isIdolExpanded: true,
-      }),
     })
     this.loadHome({ reset: true })
   },
@@ -291,11 +354,16 @@ Page({
       activeIdol: '全部',
       activeCategory: '全部',
       activeFeed: 'latest',
+      idolTypeTab: 'group',
+      idolRegionTab: 'kpop',
+      isIdolListExpanded: false,
       showCustomIdolInput: false,
       customIdolDraft: '',
       pageIndex: 1,
       ...this.getExpandStatePayload({
         activeIdol: '全部',
+        idolTypeTab: 'group',
+        idolRegionTab: 'kpop',
       }),
     })
     this.loadHome({ reset: true, scrollToFeed: true })

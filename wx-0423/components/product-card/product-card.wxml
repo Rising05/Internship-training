@@ -1,0 +1,32 @@
+<view class="product-card" bindtap="handleOpen">
+  <image class="cover" src="{{product.images[0]}}" mode="aspectFill"></image>
+  <view class="cover-badge">{{product.tradeType}}</view>
+  <view class="content">
+    <view class="badge-row">
+      <text class="mini-badge">{{product.idol}}</text>
+      <text class="mini-badge badge-secondary">{{product.category}}</text>
+    </view>
+    <view class="title">{{product.title}}</view>
+    <view class="tag-row">
+      <text wx:for="{{product.tags}}" wx:key="*this" class="tag">{{item}}</text>
+    </view>
+    <view class="meta-row">
+      <view class="price-block">
+        <text class="price">¥{{product.price}}</text>
+        <text class="condition">{{product.condition}}</text>
+      </view>
+      <view class="favorite-button {{product.isFavorite ? 'favorite-button-active' : ''}}" catchtap="handleFavorite">
+        <image
+          class="favorite-icon"
+          src="{{product.isFavorite ? '/static/image/cropped/heart-active.png' : '/static/image/cropped/heart-default.png'}}"
+          mode="aspectFit"
+        />
+      </view>
+    </view>
+    <view class="seller-row">
+      <view class="seller-chip">{{product.seller.avatarText}}</view>
+      <text class="seller-name">{{product.seller.name}}</text>
+      <text class="seller-city">{{product.seller.city}}</text>
+    </view>
+  </view>
+</view>

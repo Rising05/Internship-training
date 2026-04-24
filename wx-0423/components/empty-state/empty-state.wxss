@@ -1,0 +1,49 @@
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 56rpx 24rpx;
+  text-align: center;
+}
+
+.empty-bubble {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ffe2ed, #ffc7da);
+  color: #ff5d97;
+  font-size: 26rpx;
+  font-weight: 700;
+  box-shadow: 0 14rpx 24rpx rgba(255, 115, 156, 0.12);
+}
+
+.empty-bubble-image {
+  width: 82rpx;
+  height: 82rpx;
+}
+
+.empty-title {
+  margin-top: 20rpx;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #45323b;
+}
+
+.empty-description {
+  margin-top: 12rpx;
+  color: #9f8d97;
+  font-size: 24rpx;
+  line-height: 1.6;
+}
+
+.empty-action {
+  margin-top: 24rpx;
+  padding: 0 28rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(135deg, #ff84af, #ff5d97);
+  color: #ffffff;
+  font-size: 24rpx;
+}

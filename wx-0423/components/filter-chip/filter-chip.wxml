@@ -1,0 +1,3 @@
+<view class="chip {{active ? 'chip-active' : ''}}" bindtap="handleSelect">
+  {{label}}
+</view>

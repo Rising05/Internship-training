@@ -1,0 +1,14 @@
+.chip {
+  padding: 14rpx 24rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.85);
+  color: #8f7f88;
+  font-size: 24rpx;
+  box-shadow: 0 8rpx 18rpx rgba(255, 110, 153, 0.08);
+}
+
+.chip-active {
+  background: linear-gradient(135deg, #ff84af, #ff5d97);
+  color: #ffffff;
+  box-shadow: 0 12rpx 20rpx rgba(255, 93, 151, 0.18);
+}

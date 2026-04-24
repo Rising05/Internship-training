@@ -1,0 +1,8 @@
+<view class="empty-state">
+  <view class="empty-bubble">
+    <image class="empty-bubble-image" src="/static/image/cropped/logo-main.png" mode="aspectFit" />
+  </view>
+  <view class="empty-title">{{title}}</view>
+  <view class="empty-description">{{description}}</view>
+  <button wx:if="{{actionText}}" class="empty-action" bindtap="handleAction">{{actionText}}</button>
+</view>

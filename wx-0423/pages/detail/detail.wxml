@@ -1,0 +1,81 @@
+<view class="detail-page">
+  <xc-navbar title="商品详情" showBack rightText="···" bind:back="handleBack" />
+
+  <view wx:if="{{loading}}" class="page-loading">正在加载商品详情...</view>
+
+  <block wx:elif="{{product}}">
+    <view class="gallery-wrap">
+      <swiper class="gallery" circular indicator-dots current="{{currentImageIndex}}" bindchange="handleSwiperChange">
+        <swiper-item wx:for="{{product.images}}" wx:key="*this">
+          <image class="gallery-image" src="{{item}}" mode="aspectFill" data-url="{{item}}" bindtap="handlePreview"></image>
+        </swiper-item>
+      </swiper>
+      <view class="gallery-count">{{currentImageIndex + 1}}/{{product.images.length}}</view>
+    </view>
+
+    <view class="page-shell">
+      <view class="section-block">
+        <view class="detail-price-row">
+          <view>
+            <text class="detail-price">¥{{product.price}}</text>
+            <text class="detail-shipping">运费 ¥{{product.shippingFee}}</text>
+          </view>
+          <text class="pill-tag">{{product.tradeType}}</text>
+        </view>
+        <view class="detail-title">{{product.title}}</view>
+        <view class="detail-meta">
+          <text>{{product.condition}}</text>
+          <text>库存 {{product.quantity}}</text>
+          <text>{{product.category}}</text>
+        </view>
+        <view class="detail-tags">
+          <text wx:for="{{product.tags}}" wx:key="*this" class="detail-tag">{{item}}</text>
+        </view>
+      </view>
+
+      <view class="section-block seller-block">
+        <view class="seller-avatar">{{product.seller.avatarText}}</view>
+        <view class="seller-copy">
+          <text class="seller-name">{{product.seller.name}}</text>
+          <text class="seller-meta">{{product.seller.city}} · {{product.seller.level}} · 响应率 {{product.seller.responseRate}}</text>
+          <text class="seller-intro">{{product.seller.intro}}</text>
+        </view>
+      </view>
+
+      <view class="section-block">
+        <view class="section-head">
+          <text class="section-title">商品描述</text>
+          <text class="section-subtitle">正式交易前建议先沟通细节</text>
+        </view>
+        <view class="detail-note">{{product.note}}</view>
+      </view>
+
+      <view class="section-block">
+        <view class="section-head">
+          <text class="section-title">平台说明</text>
+          <text class="section-subtitle">已按正式版流程预留能力位</text>
+        </view>
+        <view wx:for="{{product.policies}}" wx:key="*this" class="policy-item">{{item}}</view>
+      </view>
+    </view>
+
+    <view class="bottom-bar">
+      <view class="bottom-favorite {{product.isFavorite ? 'bottom-favorite-active' : ''}}" bindtap="handleFavorite">
+        <image
+          class="bottom-favorite-icon"
+          src="{{product.isFavorite ? '/static/image/cropped/heart-active.png' : '/static/image/cropped/heart-default.png'}}"
+          mode="aspectFit"
+        />
+        <text class="favorite-label">{{product.isFavorite ? '已收藏' : '收藏'}}</text>
+      </view>
+      <button class="bottom-button ghost" bindtap="handleContact">聊天</button>
+      <button class="bottom-button primary" bindtap="handleConsult">立即购买</button>
+    </view>
+  </block>
+
+  <empty-state
+    wx:else
+    title="商品不存在"
+    description="该商品可能已经下架，你可以返回首页继续浏览。"
+  />
+</view>

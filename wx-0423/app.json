@@ -1,16 +1,53 @@
 {
   "pages": [
-    "pages/list/list",
     "pages/index/index",
-    "pages/logs/logs"
+    "pages/publish/publish",
+    "pages/messages/messages",
+    "pages/profile/profile",
+    "pages/detail/detail",
+    "pages/chat/chat"
   ],
   "window": {
     "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "Weixin",
-    "navigationBarBackgroundColor": "#ffffff"
+    "navigationBarTitleText": "星仓",
+    "navigationBarBackgroundColor": "#fff7fb",
+    "backgroundColor": "#fff7fb",
+    "backgroundTextStyle": "light"
+  },
+  "tabBar": {
+    "custom": true,
+    "color": "#8f7f88",
+    "selectedColor": "#ff6f91",
+    "borderStyle": "white",
+    "backgroundColor": "#ffffff",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "iconPath": "static/image/cropped/tab-home-default-mini.png",
+        "selectedIconPath": "static/image/cropped/tab-home-active-mini.png",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/publish/publish",
+        "iconPath": "static/image/cropped/tab-publish-default-mini.png",
+        "selectedIconPath": "static/image/cropped/tab-publish-active-mini.png",
+        "text": "发布"
+      },
+      {
+        "pagePath": "pages/messages/messages",
+        "iconPath": "static/image/cropped/tab-message-default-mini.png",
+        "selectedIconPath": "static/image/cropped/tab-message-active-mini.png",
+        "text": "消息"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "iconPath": "static/image/cropped/tab-profile-default-mini.png",
+        "selectedIconPath": "static/image/cropped/tab-profile-active-mini.png",
+        "text": "我的"
+      }
+    ]
   },
   "style": "v2",
   "componentFramework": "glass-easel",
-  "sitemapLocation": "sitemap.json",
-  "lazyCodeLoading": "requiredComponents"
+  "sitemapLocation": "sitemap.json"
 }

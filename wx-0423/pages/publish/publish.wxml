@@ -1,0 +1,143 @@
+<view class="publish-page">
+  <xc-navbar title="发布商品" />
+
+  <view wx:if="{{loading}}" class="page-loading">正在准备发布页...</view>
+
+  <view wx:else class="page-shell">
+    <view class="publish-hero">
+      <text class="hero-title">发布出物</text>
+      <text class="hero-desc">表单结构已按后端接入场景整理，后续只需替换真实 API 即可。</text>
+      <view class="tip-list">
+        <view wx:for="{{tips}}" wx:key="*this" class="tip-item">{{item}}</view>
+      </view>
+    </view>
+
+    <view class="section-block">
+      <view class="section-head">
+        <text class="section-title">选择类型</text>
+        <text class="section-subtitle">先标记商品主类，再补充明细信息</text>
+      </view>
+      <view class="type-row">
+        <view
+          wx:for="{{publishTypeOptions}}"
+          wx:key="key"
+          class="type-item {{form.publishType === item.key ? 'type-item-active' : ''}}"
+          data-key="{{item.key}}"
+          data-label="{{item.label}}"
+          bindtap="handlePublishTypeSelect"
+        >
+          <view class="type-icon">
+            <image class="type-icon-image" src="{{item.iconPath}}" mode="aspectFit" />
+          </view>
+          <text class="type-label">{{item.label}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="section-block">
+      <view class="section-head">
+        <text class="section-title">上传图片</text>
+        <text class="section-subtitle">最多 9 张，封面建议使用竖图</text>
+      </view>
+      <view class="image-grid">
+        <view wx:for="{{imageList}}" wx:key="*this" class="image-item">
+          <image class="preview-image" src="{{item}}" mode="aspectFill" data-url="{{item}}" bindtap="handlePreviewImage"></image>
+          <view class="delete-badge" data-index="{{index}}" bindtap="handleDeleteImage">×</view>
+        </view>
+        <view wx:if="{{imageList.length < 9}}" class="image-picker" bindtap="handleChooseImage">
+          <text class="picker-plus">+</text>
+          <text class="picker-text">添加图片</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="section-block">
+      <view class="section-head">
+        <text class="section-title">基础信息</text>
+        <text class="section-subtitle">标题、价格、数量和分类都已预留字段</text>
+      </view>
+
+      <view class="form-item">
+        <text class="form-label">标题</text>
+        <input class="form-input" placeholder="请输入商品标题" value="{{form.title}}" data-field="title" bindinput="handleTextInput" />
+      </view>
+
+      <view class="double-row">
+        <view class="form-item half-item">
+          <text class="form-label">价格</text>
+          <input class="form-input" type="digit" placeholder="0.00" value="{{form.price}}" data-field="price" bindinput="handleTextInput" />
+        </view>
+        <view class="form-item half-item">
+          <text class="form-label">数量</text>
+          <input class="form-input" type="number" placeholder="1" value="{{form.quantity}}" data-field="quantity" bindinput="handleTextInput" />
+        </view>
+      </view>
+
+      <view class="double-row">
+        <view class="form-item half-item">
+          <text class="form-label">爱豆</text>
+          <picker range="{{idolOptions}}" data-field="idol" data-range="idolOptions" bindchange="handlePickerChange">
+            <view class="picker-field">{{form.idol}}</view>
+          </picker>
+        </view>
+        <view class="form-item half-item">
+          <text class="form-label">分类</text>
+          <picker range="{{categoryOptions}}" data-field="category" data-range="categoryOptions" bindchange="handlePickerChange">
+            <view class="picker-field">{{form.category}}</view>
+          </picker>
+        </view>
+      </view>
+    </view>
+
+    <view class="section-block">
+      <view class="section-head">
+        <text class="section-title">交易设置</text>
+        <text class="section-subtitle">为真实发布接口预留成色、交易方式与运费字段</text>
+      </view>
+
+      <view class="form-item">
+        <text class="form-label">交易方式</text>
+        <view class="chip-row">
+          <view
+            wx:for="{{tradeTypeOptions}}"
+            wx:key="*this"
+            class="choice-chip {{form.tradeType === item ? 'choice-chip-active' : ''}}"
+            data-value="{{item}}"
+            bindtap="handleTradeTypeSelect"
+          >
+            {{item}}
+          </view>
+        </view>
+      </view>
+
+      <view class="form-item">
+        <text class="form-label">成色说明</text>
+        <view class="chip-row">
+          <view
+            wx:for="{{conditionOptions}}"
+            wx:key="*this"
+            class="choice-chip {{form.condition === item ? 'choice-chip-active' : ''}}"
+            data-value="{{item}}"
+            bindtap="handleConditionSelect"
+          >
+            {{item}}
+          </view>
+        </view>
+      </view>
+
+      <view class="form-item">
+        <text class="form-label">运费</text>
+        <input class="form-input" type="digit" placeholder="包邮填 0" value="{{form.shippingFee}}" data-field="shippingFee" bindinput="handleTextInput" />
+      </view>
+
+      <view class="form-item">
+        <text class="form-label">描述</text>
+        <textarea class="form-textarea" placeholder="补充成色、包装、交换偏好等说明" value="{{form.note}}" data-field="note" bindinput="handleTextInput"></textarea>
+      </view>
+    </view>
+  </view>
+
+  <view class="publish-bottom-bar">
+    <button class="publish-button" loading="{{submitting}}" bindtap="handleSubmit">发布商品</button>
+  </view>
+</view>

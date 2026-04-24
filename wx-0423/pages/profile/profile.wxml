@@ -1,0 +1,129 @@
+<view class="profile-page">
+  <xc-navbar title="我的" />
+
+  <view wx:if="{{loading}}" class="page-loading">正在加载个人中心...</view>
+
+  <view wx:else class="page-shell">
+    <view class="profile-hero">
+      <view class="profile-top">
+        <view class="avatar-circle">{{profileInitial}}</view>
+        <view class="profile-copy">
+          <text class="nickname">{{profile.nickname}}</text>
+          <text class="bio">{{profile.bio}}</text>
+          <text class="city">ID {{profile.id}} · {{profile.location}}</text>
+        </view>
+      </view>
+      <view class="stats-row">
+        <view class="stat-item">
+          <text class="stat-value">{{stats.publishedCount}}</text>
+          <text class="stat-label">我发布的</text>
+        </view>
+        <view class="stat-item">
+          <text class="stat-value">{{stats.soldCount}}</text>
+          <text class="stat-label">我卖出的</text>
+        </view>
+        <view class="stat-item">
+          <text class="stat-value">{{stats.favoriteCount}}</text>
+          <text class="stat-label">我收藏的</text>
+        </view>
+        <view class="stat-item">
+          <text class="stat-value">{{stats.dealCount}}</text>
+          <text class="stat-label">交易记录</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="section-block">
+      <view class="section-head">
+        <text class="section-title">我的订单</text>
+        <text class="section-subtitle">订单、交易与售后统一入口</text>
+      </view>
+      <view class="shortcut-row">
+        <view wx:for="{{orderShortcuts}}" wx:key="key" class="shortcut-item">
+          <view class="shortcut-icon">
+            <image class="shortcut-icon-image" src="{{item.iconPath}}" mode="aspectFit" />
+          </view>
+          <text class="shortcut-label">{{item.label}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view wx:if="{{latestPublished.length}}" class="section-block">
+      <view class="section-head">
+        <text class="section-title">最新发布</text>
+        <text class="section-subtitle">你刚刚发布的商品会先展示在这里</text>
+      </view>
+      <view wx:for="{{latestPublished}}" wx:key="id" class="mini-product" data-id="{{item.id}}" bindtap="handleOpenDetail">
+        <image class="mini-cover" src="{{item.images[0]}}" mode="aspectFill"></image>
+        <view class="mini-content">
+          <text class="mini-title">{{item.title}}</text>
+          <text class="mini-meta">{{item.idol}} · {{item.category}}</text>
+          <text class="mini-price">¥{{item.price}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="section-block">
+      <view class="section-head">
+        <text class="section-title">我的收藏</text>
+        <text class="section-subtitle">与你当前收藏状态保持同步</text>
+      </view>
+      <block wx:if="{{favoriteProducts.length}}">
+        <view wx:for="{{favoriteProducts}}" wx:key="id" class="mini-product" data-id="{{item.id}}" bindtap="handleOpenDetail">
+          <image class="mini-cover" src="{{item.images[0]}}" mode="aspectFill"></image>
+          <view class="mini-content">
+            <text class="mini-title">{{item.title}}</text>
+            <text class="mini-meta">{{item.idol}} · {{item.category}}</text>
+            <text class="mini-price">¥{{item.price}}</text>
+          </view>
+        </view>
+      </block>
+      <empty-state
+        wx:else
+        title="还没有收藏商品"
+        description="逛到喜欢的商品时，可以先加入收藏夹。"
+      />
+    </view>
+
+    <view class="section-block">
+      <view class="section-head">
+        <text class="section-title">最近浏览</text>
+        <text class="section-subtitle">浏览记录会帮助你快速找回看过的商品</text>
+      </view>
+      <block wx:if="{{recentViews.length}}">
+        <view wx:for="{{recentViews}}" wx:key="id" class="mini-product" data-id="{{item.id}}" bindtap="handleOpenDetail">
+          <image class="mini-cover" src="{{item.images[0]}}" mode="aspectFill"></image>
+          <view class="mini-content">
+            <text class="mini-title">{{item.title}}</text>
+            <text class="mini-meta">{{item.tradeType}} · {{item.condition}}</text>
+            <text class="mini-price">¥{{item.price}}</text>
+          </view>
+        </view>
+        <button class="clear-button" bindtap="handleClearRecent">清空浏览记录</button>
+      </block>
+      <empty-state
+        wx:else
+        title="暂无浏览记录"
+        description="进入商品详情后，这里会自动保留最近浏览的内容。"
+      />
+    </view>
+
+    <view class="section-block">
+      <view class="section-head">
+        <text class="section-title">帮助与设置</text>
+        <text class="section-subtitle">正式版所需的隐私、帮助和反馈入口</text>
+      </view>
+      <view wx:for="{{menuItems}}" wx:key="key" class="menu-item" data-title="{{item.title}}" bindtap="handleMenuTap">
+        <view>
+          <text class="menu-title">{{item.title}}</text>
+          <text class="menu-desc">{{item.desc}}</text>
+        </view>
+        <text class="menu-arrow">›</text>
+      </view>
+    </view>
+
+    <view class="policy-card">
+      <view wx:for="{{policyHighlights}}" wx:key="*this" class="policy-line">{{item}}</view>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,141 @@
+.product-card {
+  position: relative;
+  margin-bottom: 20rpx;
+  overflow: hidden;
+  border-radius: 30rpx;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 18rpx 32rpx rgba(255, 111, 145, 0.1);
+}
+
+.cover {
+  width: 100%;
+  height: 248rpx;
+  background: #ffe6ee;
+}
+
+.cover-badge {
+  position: absolute;
+  top: 16rpx;
+  left: 16rpx;
+  padding: 8rpx 14rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.88);
+  color: #ff5d97;
+  font-size: 20rpx;
+  font-weight: 700;
+}
+
+.content {
+  padding: 20rpx 20rpx 22rpx;
+}
+
+.badge-row,
+.tag-row,
+.meta-row,
+.seller-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+}
+
+.title {
+  margin-top: 12rpx;
+  color: #3a2832;
+  font-size: 28rpx;
+  font-weight: 700;
+  line-height: 1.5;
+  min-height: 84rpx;
+}
+
+.mini-badge {
+  padding: 8rpx 14rpx;
+  border-radius: 999rpx;
+  background: #fff0f5;
+  color: #ff5d97;
+  font-size: 20rpx;
+}
+
+.badge-secondary {
+  background: #fff6e8;
+  color: #ff9b52;
+}
+
+.tag-row {
+  margin-top: 12rpx;
+}
+
+.tag {
+  padding: 6rpx 12rpx;
+  border-radius: 999rpx;
+  background: #fdf1f7;
+  color: #8f7f88;
+  font-size: 20rpx;
+}
+
+.meta-row {
+  margin-top: 18rpx;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.price-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.price {
+  color: #ff5d97;
+  font-size: 34rpx;
+  font-weight: 700;
+}
+
+.condition {
+  color: #8f7f88;
+  font-size: 22rpx;
+}
+
+.favorite-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48rpx;
+  height: 48rpx;
+}
+
+.favorite-icon {
+  width: 28rpx;
+  height: 28rpx;
+  flex-shrink: 0;
+}
+
+.favorite-button-active {
+  transform: scale(1.04);
+}
+
+.seller-row {
+  margin-top: 14rpx;
+  align-items: center;
+  gap: 10rpx;
+  color: #9f8d97;
+  font-size: 22rpx;
+}
+
+.seller-chip {
+  width: 34rpx;
+  height: 34rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ffc6da, #ff8ab2);
+  color: #ffffff;
+  text-align: center;
+  line-height: 34rpx;
+  font-size: 18rpx;
+}
+
+.seller-name {
+  color: #725d68;
+}
+
+.seller-city {
+  margin-left: auto;
+}

@@ -1,27 +1,174 @@
-<!--index.wxml-->
-<scroll-view class="scrollarea" scroll-y type="list">
-  <view class="container">
-    <view class="userinfo">
-      <block wx:if="{{canIUseNicknameComp && !hasUserInfo}}">
-        <button class="avatar-wrapper" open-type="chooseAvatar" bind:chooseavatar="onChooseAvatar">
-          <image class="avatar" src="{{userInfo.avatarUrl}}"></image>
-        </button>
-        <view class="nickname-wrapper">
-          <text class="nickname-label">昵称</text>
-          <input type="nickname" class="nickname-input" placeholder="请输入昵称" bind:change="onInputChange" />
-        </view>
-      </block>
-      <block wx:elif="{{!hasUserInfo}}">
-        <button wx:if="{{canIUseGetUserProfile}}" bindtap="getUserProfile"> 获取头像昵称 </button>
-        <view wx:else> 请使用2.10.4及以上版本基础库 </view>
-      </block>
-      <block wx:else>
-        <image bindtap="bindViewTap" class="userinfo-avatar" src="{{userInfo.avatarUrl}}" mode="cover"></image>
-        <text class="userinfo-nickname">{{userInfo.nickName}}</text>
-      </block>
+<view class="home-page">
+  <xc-navbar title="星仓" />
+
+  <view class="page-shell">
+    <view class="hero-card">
+      <image class="hero-cover-image" src="/static/image/cropped/home-hero-cover.png" mode="aspectFill" />
     </view>
-    <view class="usermotto">
-      <text class="user-motto">{{motto}}</text>
+
+    <view class="section-block">
+      <view class="section-head">
+        <text class="section-title">首页分类</text>
+        <text class="section-subtitle">小卡、吧唧、应援物快速筛选</text>
+      </view>
+      <view class="quick-grid">
+        <view
+          wx:for="{{visibleQuickEntries}}"
+          wx:key="key"
+          class="quick-item {{activeCategory === item.category ? 'quick-item-active' : ''}}"
+          data-category="{{item.category}}"
+          bindtap="handleQuickEntryTap"
+        >
+          <view class="quick-icon">
+            <image class="quick-icon-image" src="{{item.iconPath}}" mode="aspectFit" />
+          </view>
+          <text class="quick-label">{{item.label}}</text>
+        </view>
+      </view>
+      <view class="quick-actions">
+        <view
+          wx:if="{{hiddenQuickEntryCount > 0 && !isCategoryExpanded}}"
+          class="section-action-pill"
+          bindtap="handleToggleCategoryExpand"
+        >
+          更多分类
+        </view>
+        <view
+          wx:if="{{isCategoryExpanded}}"
+          class="section-action-pill section-action-pill-soft"
+          bindtap="handleToggleCategoryExpand"
+        >
+          收起分类
+        </view>
+      </view>
+    </view>
+
+    <view class="section-block">
+      <view class="section-head">
+        <text class="section-title">担位筛选</text>
+        <text class="section-subtitle">按担名快速定位商品</text>
+      </view>
+      <view class="chip-grid">
+        <filter-chip
+          wx:for="{{visibleIdolOptions}}"
+          wx:key="*this"
+          label="{{item}}"
+          value="{{item}}"
+          active="{{activeIdol === item}}"
+          bind:select="handleIdolSelect"
+        />
+        <view
+          wx:if="{{hiddenIdolCount > 0 && !isIdolExpanded}}"
+          class="chip-action"
+          bindtap="handleToggleIdolExpand"
+        >
+          更多
+        </view>
+        <view
+          wx:if="{{isIdolExpanded}}"
+          class="chip-action {{showCustomIdolInput ? 'chip-action-active' : ''}}"
+          bindtap="handleOpenCustomIdol"
+        >
+          其他
+        </view>
+        <view
+          wx:if="{{isIdolExpanded}}"
+          class="chip-action chip-action-soft"
+          bindtap="handleToggleIdolExpand"
+        >
+          收起
+        </view>
+      </view>
+      <view wx:if="{{showCustomIdolInput}}" class="custom-idol-box">
+        <input
+          class="custom-idol-input"
+          placeholder="输入你的担名"
+          value="{{customIdolDraft}}"
+          bindinput="handleCustomIdolInput"
+          bindconfirm="handleApplyCustomIdol"
+          confirm-type="done"
+        />
+        <view class="custom-idol-submit" bindtap="handleApplyCustomIdol">确定</view>
+      </view>
+    </view>
+
+    <view class="search-card">
+      <view class="search-input-wrap">
+        <image class="search-icon" src="/static/image/icon-search.svg" mode="aspectFit" />
+        <input
+          class="search-input"
+          placeholder="搜索商品、用户、关键词"
+          value="{{draftKeyword}}"
+          bindinput="handleSearchInput"
+          bindconfirm="handleSubmitSearch"
+          confirm-type="search"
+        />
+        <view class="search-submit" bindtap="handleSubmitSearch">搜索</view>
+      </view>
+      <view class="search-suggestions">
+        <text class="suggestions-label">相关搜索</text>
+        <view class="suggestions-row">
+          <view
+            wx:for="{{searchSuggestions}}"
+            wx:key="*this"
+            class="suggestion-chip {{draftKeyword === item ? 'suggestion-chip-active' : ''}}"
+            data-keyword="{{item}}"
+            bindtap="handleSuggestionTap"
+          >
+            {{item}}
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view id="feed-section" class="section-block">
+      <view class="section-head">
+        <text class="section-title">推荐商品</text>
+        <text class="section-subtitle">保留 mock 数据结构，后续可直接切真实接口</text>
+      </view>
+      <view class="feed-switch">
+        <view
+          wx:for="{{feedModes}}"
+          wx:key="key"
+          class="feed-tab {{activeFeed === item.key ? 'feed-tab-active' : ''}}"
+          data-feed="{{item.key}}"
+          bindtap="handleFeedSwitch"
+        >
+          {{item.label}}
+        </view>
+      </view>
+
+      <view wx:if="{{loading}}" class="page-loading">正在加载首页内容...</view>
+      <block wx:elif="{{leftColumn.length + rightColumn.length}}">
+        <view class="waterfall">
+          <view class="waterfall-column">
+            <product-card
+              wx:for="{{leftColumn}}"
+              wx:key="id"
+              product="{{item}}"
+              bind:favorite="handleFavorite"
+              bind:open="handleOpenProduct"
+            />
+          </view>
+          <view class="waterfall-column">
+            <product-card
+              wx:for="{{rightColumn}}"
+              wx:key="id"
+              product="{{item}}"
+              bind:favorite="handleFavorite"
+              bind:open="handleOpenProduct"
+            />
+          </view>
+        </view>
+        <view class="load-tip">{{loadingMore ? '正在加载更多商品...' : (hasMore ? '上拉查看更多商品' : '已经到底了，试试发布自己的商品吧')}}</view>
+      </block>
+      <empty-state
+        wx:else
+        title="没有找到匹配商品"
+        description="你可以更换担位、分类或关键词后继续浏览。"
+        action-text="恢复默认筛选"
+        bind:action="handleResetFilters"
+      />
     </view>
   </view>
-</scroll-view>
+</view>

@@ -1,1 +1,13 @@
 /* pages/list/list.wxss */
+.header{
+  height: 100px;
+  background-color: #00ffff;
+  display:flex;
+  justify-content: center;
+  align-items: center;
+}
+.a1{
+  color:#ff6600;
+  background-color: #ffff00;
+  font-size: 28rpx;
+}

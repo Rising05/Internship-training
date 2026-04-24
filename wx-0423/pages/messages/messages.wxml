@@ -1,0 +1,51 @@
+<view class="messages-page">
+  <xc-navbar title="消息" />
+
+  <view class="page-shell">
+    <view class="section-block">
+      <view class="message-tabs">
+        <view
+          wx:for="{{tabs}}"
+          wx:key="key"
+          class="message-tab {{activeTab === item.key ? 'message-tab-active' : ''}}"
+          data-tab="{{item.key}}"
+          bindtap="handleTabSwitch"
+        >
+          <view class="message-tab-icon">
+            <image class="message-tab-icon-image" src="{{item.iconPath}}" mode="aspectFit" />
+          </view>
+          <text class="message-tab-label">{{item.label}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="section-block">
+      <view wx:if="{{loading}}" class="page-loading">正在加载消息...</view>
+      <block wx:elif="{{activeList.length}}">
+        <view
+          wx:for="{{activeList}}"
+          wx:key="id"
+          class="message-item"
+          data-id="{{item.id}}"
+          bindtap="handleMessageTap"
+        >
+          <view class="avatar-circle">{{item.avatarText}}</view>
+          <view class="message-content">
+            <view class="message-top">
+              <text class="message-name">{{item.name || item.title}}</text>
+              <text class="message-time">{{item.time}}</text>
+            </view>
+            <text class="message-preview">{{item.content}}</text>
+            <text wx:if="{{item.relatedProductId}}" class="message-link">查看对话详情</text>
+          </view>
+          <view wx:if="{{item.unread}}" class="unread-badge">{{item.unread}}</view>
+        </view>
+      </block>
+      <empty-state
+        wx:else
+        title="暂时没有新消息"
+        description="当有人收藏、私聊或触发系统通知时，会在这里汇总显示。"
+      />
+    </view>
+  </view>
+</view>

@@ -1,0 +1,21 @@
+<view class="custom-tab-shell">
+  <view class="custom-tab-bar">
+    <view
+      wx:for="{{tabs}}"
+      wx:key="key"
+      class="tab-item {{selected === item.pagePath ? 'tab-item-active' : ''}}"
+      data-path="{{item.pagePath}}"
+      bindtap="switchTab"
+    >
+      <view class="tab-icon-wrap">
+        <image
+          class="tab-icon"
+          src="{{selected === item.pagePath ? item.selectedIconPath : item.iconPath}}"
+          mode="aspectFit"
+        />
+        <view wx:if="{{item.key === 'messages' && unreadCount}}" class="tab-badge">{{unreadCount}}</view>
+      </view>
+      <text class="tab-label">{{item.text}}</text>
+    </view>
+  </view>
+</view>

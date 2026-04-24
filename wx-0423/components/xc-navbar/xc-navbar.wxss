@@ -1,0 +1,53 @@
+.xc-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(255, 247, 250, 0.92);
+  backdrop-filter: blur(16rpx);
+}
+
+.xc-navbar-transparent {
+  background: transparent;
+}
+
+.xc-navbar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24rpx;
+}
+
+.xc-navbar-side {
+  width: 88rpx;
+  display: flex;
+  align-items: center;
+}
+
+.xc-navbar-side-right {
+  justify-content: flex-end;
+}
+
+.xc-navbar-title {
+  flex: 1;
+  text-align: center;
+  color: #352531;
+  font-size: 32rpx;
+  font-weight: 700;
+}
+
+.xc-navbar-button {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  color: #4a3340;
+  text-align: center;
+  line-height: 64rpx;
+  font-size: 40rpx;
+  box-shadow: 0 10rpx 22rpx rgba(255, 117, 159, 0.12);
+}
+
+.xc-navbar-button-light {
+  font-size: 24rpx;
+  line-height: 64rpx;
+}

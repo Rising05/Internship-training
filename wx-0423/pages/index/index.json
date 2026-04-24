@@ -1,4 +1,10 @@
 {
+  "navigationStyle": "custom",
+  "enablePullDownRefresh": true,
   "usingComponents": {
+    "product-card": "/components/product-card/product-card",
+    "filter-chip": "/components/filter-chip/filter-chip",
+    "empty-state": "/components/empty-state/empty-state",
+    "xc-navbar": "/components/xc-navbar/xc-navbar"
   }
 }

@@ -1,0 +1,60 @@
+<view class="chat-page">
+  <xc-navbar title="{{navTitle}}" showBack bind:back="handleBack" />
+
+  <view wx:if="{{loading}}" class="chat-loading">正在加载会话...</view>
+
+  <block wx:elif="{{thread}}">
+    <view class="chat-header">
+      <view class="chat-user-avatar">{{thread.user.avatarText}}</view>
+      <view class="chat-user-copy">
+        <text class="chat-user-name">{{thread.title}}</text>
+        <text class="chat-user-subtitle">{{thread.subtitle}}</text>
+      </view>
+    </view>
+
+    <view wx:if="{{thread.relatedProduct}}" class="chat-product-card" data-id="{{thread.relatedProduct.id}}" bindtap="handleOpenProduct">
+      <image class="chat-product-cover" src="{{thread.relatedProduct.images[0]}}" mode="aspectFill" />
+      <view class="chat-product-copy">
+        <text class="chat-product-title">{{thread.relatedProduct.title}}</text>
+        <text class="chat-product-price">¥{{thread.relatedProduct.price}}</text>
+      </view>
+    </view>
+
+    <scroll-view class="chat-scroll" scroll-y scroll-into-view="{{scrollIntoView}}">
+      <view wx:for="{{decoratedMessages}}" wx:key="id" id="msg-{{item.id}}" class="{{item.rowClassName}}">
+        <view wx:if="{{item.showAvatar}}" class="chat-bubble-avatar">{{thread.user.avatarText}}</view>
+        <view class="{{item.bubbleClassName}}">
+          <block wx:if="{{item.isProduct}}">
+            <view class="bubble-product" data-id="{{item.product.id}}" bindtap="handleOpenProduct">
+              <image class="bubble-product-cover" src="{{item.product.images[0]}}" mode="aspectFill" />
+              <view class="bubble-product-copy">
+                <text class="bubble-product-title">{{item.product.title}}</text>
+                <text class="bubble-product-price">¥{{item.product.price}}</text>
+              </view>
+            </view>
+          </block>
+          <text wx:else class="chat-text">{{item.content}}</text>
+          <text class="chat-time">{{item.time}}</text>
+        </view>
+      </view>
+    </scroll-view>
+
+    <view class="chat-input-bar">
+      <input
+        class="chat-input"
+        placeholder="输入消息..."
+        value="{{inputValue}}"
+        bindinput="handleInput"
+        confirm-type="send"
+        bindconfirm="handleSend"
+      />
+      <button class="chat-send" loading="{{sending}}" bindtap="handleSend">发送</button>
+    </view>
+  </block>
+
+  <empty-state
+    wx:else
+    title="会话不存在"
+    description="该会话可能已失效，请返回消息页重新进入。"
+  />
+</view>

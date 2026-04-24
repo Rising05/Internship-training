@@ -1,0 +1,11 @@
+<view class="xc-navbar {{transparent ? 'xc-navbar-transparent' : ''}}" style="padding-top: {{statusBarHeight}}px;">
+  <view class="xc-navbar-inner" style="height: {{navBarHeight}}px;">
+    <view class="xc-navbar-side">
+      <view wx:if="{{showBack}}" class="xc-navbar-button" bindtap="handleBack">‹</view>
+    </view>
+    <text class="xc-navbar-title">{{title}}</text>
+    <view class="xc-navbar-side xc-navbar-side-right">
+      <view wx:if="{{rightText}}" class="xc-navbar-button xc-navbar-button-light" bindtap="handleRightTap">{{rightText}}</view>
+    </view>
+  </view>
+</view>

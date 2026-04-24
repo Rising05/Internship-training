@@ -1,19 +1,29 @@
-// app.js
-App({
-  onLaunch() {
-    // 展示本地存储能力
-    const logs = wx.getStorageSync('logs') || []
-    logs.unshift(Date.now())
-    wx.setStorageSync('logs', logs)
+const services = require('./services/index')
+const { getNavMetrics } = require('./utils/system')
 
-    // 登录
-    wx.login({
-      success: res => {
-        // 发送 res.code 到后台换取 openId, sessionKey, unionId
-      }
-    })
+App({
+  async onLaunch() {
+    this.globalData.system = getNavMetrics()
+    await this.syncGlobalData()
   },
+
+  async syncGlobalData() {
+    const appData = await services.bootstrapApp()
+    this.globalData.profile = appData.profile
+    this.globalData.authSession = appData.authSession
+    this.globalData.summary = appData.summary
+    return appData
+  },
+
   globalData: {
-    userInfo: null
+    profile: null,
+    authSession: null,
+    system: null,
+    summary: {
+      favoriteCount: 0,
+      recentCount: 0,
+      unreadConversationCount: 0,
+      publishedCount: 0,
+    },
   }
 })

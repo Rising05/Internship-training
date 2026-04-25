@@ -130,7 +130,7 @@ async function handleRequest(req, res) {
         sendError(res, 400, 'INVALID_JSON', 'Request body must be valid JSON')
         return
       }
-      sendJson(res, 200, loginWithWeChat(body))
+      sendJson(res, 200, await loginWithWeChat(body))
       return
     }
 
@@ -252,7 +252,13 @@ async function handleRequest(req, res) {
 
     sendError(res, 404, 'NOT_FOUND', 'Route not found')
   } catch (error) {
-    sendError(res, 500, 'INTERNAL_ERROR', error.message)
+    sendError(
+      res,
+      Number(error.statusCode || 500),
+      error.code || 'INTERNAL_ERROR',
+      error.message || 'Unexpected server error',
+      error.details
+    )
   }
 }
 

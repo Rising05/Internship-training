@@ -1,5 +1,12 @@
 const { getAuthSession } = require('../../utils/storage')
-const { baseURL, timeout, imageUploadPath } = require('./config')
+const {
+  baseURL,
+  timeout,
+  imageUploadPath,
+  cloudEnv,
+  useCloudUpload,
+  cloudUploadPrefix,
+} = require('./config')
 
 function buildUrl(path) {
   if (!baseURL) {
@@ -123,11 +130,45 @@ function uploadFile(filePath, options = {}) {
 }
 
 function isRemoteFilePath(filePath = '') {
-  return /^(https?:)?\/\//.test(filePath)
+  return /^(https?:)?\/\//.test(filePath) || /^cloud:\/\//.test(filePath)
 }
 
 function extractUploadedUrl(payload = {}) {
   return payload.url || payload.fileUrl || (payload.data && payload.data.url) || ''
+}
+
+function buildCloudPath(filePath) {
+  const extensionMatch = String(filePath || '').match(/\.[^.\\/]+$/)
+  const extension = extensionMatch ? extensionMatch[0] : '.jpg'
+  return `${cloudUploadPrefix}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}${extension}`
+}
+
+function uploadFileToCloud(filePath) {
+  return new Promise((resolve, reject) => {
+    if (!cloudEnv) {
+      reject(new Error('services/http/config.js cloudEnv is empty'))
+      return
+    }
+
+    if (!wx.cloud || !wx.cloud.uploadFile) {
+      reject(new Error('wx.cloud is not available in the current miniapp runtime'))
+      return
+    }
+
+    wx.cloud.uploadFile({
+      cloudPath: buildCloudPath(filePath),
+      filePath,
+      success(response) {
+        resolve({
+          url: response.fileID,
+          fileId: response.fileID,
+        })
+      },
+      fail(error) {
+        reject(error)
+      },
+    })
+  })
 }
 
 async function uploadImages(filePaths = []) {
@@ -139,7 +180,9 @@ async function uploadImages(filePaths = []) {
       continue
     }
 
-    const uploaded = await uploadFile(filePath)
+    const uploaded = useCloudUpload
+      ? await uploadFileToCloud(filePath)
+      : await uploadFile(filePath)
     const uploadedUrl = extractUploadedUrl(uploaded)
 
     if (!uploadedUrl) {

@@ -1,12 +1,27 @@
 const services = require('./services/index')
+const { cloudEnv } = require('./services/http/config')
 const { setAuthSession } = require('./utils/storage')
 const { getNavMetrics } = require('./utils/system')
 
 App({
   async onLaunch() {
     this.globalData.system = getNavMetrics()
+    this.initCloud()
     await services.ensureSession()
     await this.syncGlobalData()
+  },
+
+  initCloud() {
+    if (!cloudEnv || !wx.cloud || !wx.cloud.init) {
+      return
+    }
+
+    wx.cloud.init({
+      env: cloudEnv,
+      traceUser: true,
+    })
+
+    this.globalData.cloudReady = true
   },
 
   async syncGlobalData() {
@@ -23,6 +38,7 @@ App({
   globalData: {
     profile: null,
     authSession: null,
+    cloudReady: false,
     system: null,
     summary: {
       favoriteCount: 0,

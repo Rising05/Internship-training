@@ -1,9 +1,11 @@
 const path = require('node:path')
 const fs = require('node:fs')
 const crypto = require('node:crypto')
+const https = require('node:https')
 const { normalizeIdolPayload } = require('../../utils/idol')
 const { DEMO_OPENID } = require('./seed')
 const { readDb, withDb, resetDb } = require('./database')
+const { readBackendConfig } = require('./config')
 
 const UPLOADS_DIR = path.join(__dirname, '..', 'uploads')
 const DEFAULT_PAGE_SIZE = 6
@@ -270,12 +272,105 @@ function getCurrentUserFromHeaders(headers) {
   return headers['x-openid'] || headers['X-Openid'] || DEMO_OPENID
 }
 
-function loginWithWeChat(body = {}) {
+function createServiceError(statusCode, code, message, details) {
+  const error = new Error(message)
+  error.statusCode = statusCode
+  error.code = code
+  error.details = details
+  return error
+}
+
+function requestJson(url) {
+  return new Promise((resolve, reject) => {
+    https
+      .get(url, (response) => {
+        const chunks = []
+        response.on('data', (chunk) => chunks.push(chunk))
+        response.on('end', () => {
+          try {
+            resolve(JSON.parse(Buffer.concat(chunks).toString('utf8')))
+          } catch (error) {
+            reject(createServiceError(502, 'WECHAT_RESPONSE_INVALID', 'WeChat login response is not valid JSON'))
+          }
+        })
+      })
+      .on('error', (error) => {
+        reject(createServiceError(502, 'WECHAT_REQUEST_FAILED', 'WeChat login request failed', error.message))
+      })
+  })
+}
+
+function shouldUseRealWeChatLogin(config, code) {
+  if (config.wechat.loginMode === 'code2session') {
+    return true
+  }
+
+  if (config.wechat.loginMode === 'stub') {
+    return false
+  }
+
+  return Boolean(config.wechat.appId && config.wechat.appSecret && code && code !== 'dev-code')
+}
+
+async function resolveWeChatSession(code) {
+  const config = readBackendConfig()
+  if (!config.wechat.appId || !config.wechat.appSecret) {
+    throw createServiceError(
+      500,
+      'WECHAT_CONFIG_MISSING',
+      'WECHAT_APP_ID and WECHAT_APP_SECRET are required for real WeChat login'
+    )
+  }
+
+  const query = new URLSearchParams({
+    appid: config.wechat.appId,
+    secret: config.wechat.appSecret,
+    js_code: code,
+    grant_type: 'authorization_code',
+  })
+  const payload = await requestJson(`https://api.weixin.qq.com/sns/jscode2session?${query.toString()}`)
+
+  if (!payload || payload.errcode) {
+    throw createServiceError(
+      401,
+      'WECHAT_LOGIN_FAILED',
+      (payload && payload.errmsg) || 'WeChat code2Session failed',
+      payload || null
+    )
+  }
+
+  return payload
+}
+
+async function loginWithWeChat(body = {}) {
   const code = typeof body.code === 'string' ? body.code.trim() : ''
+  const config = readBackendConfig()
+
+  if (shouldUseRealWeChatLogin(config, code)) {
+    if (!code) {
+      throw createServiceError(400, 'WECHAT_CODE_REQUIRED', 'wx.login code is required')
+    }
+
+    const session = await resolveWeChatSession(code)
+    const db = withDb((current) => {
+      const user = ensureUser(current, session.openid)
+      user.unionId = session.unionid || user.unionId || ''
+      user.updatedAt = getNowIso()
+      return current
+    })
+    const user = getUserByOpenid(db, session.openid)
+
+    return {
+      loggedIn: true,
+      openid: user.openid,
+      nickname: user.nickname,
+      sessionSource: 'wechat',
+    }
+  }
+
   const fallbackOpenid = code
     ? `demo-${crypto.createHash('md5').update(code).digest('hex').slice(0, 8)}`
     : DEMO_OPENID
-
   const db = withDb((current) => {
     ensureUser(current, DEMO_OPENID)
     return current
@@ -286,6 +381,7 @@ function loginWithWeChat(body = {}) {
     loggedIn: true,
     openid: user.openid || fallbackOpenid,
     nickname: user.nickname,
+    sessionSource: 'stub',
   }
 }
 

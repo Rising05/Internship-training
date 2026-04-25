@@ -1,4 +1,8 @@
 Component({
+  data: {
+    showLogoImage: true,
+  },
+
   properties: {
     title: {
       type: String,
@@ -15,6 +19,12 @@ Component({
   },
 
   methods: {
+    handleLogoError() {
+      this.setData({
+        showLogoImage: false,
+      })
+    },
+
     handleAction() {
       this.triggerEvent('action')
     },

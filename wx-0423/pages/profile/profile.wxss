@@ -153,10 +153,16 @@
 
 .clear-button {
   margin-top: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 72rpx;
+  padding: 0 28rpx;
   border-radius: 999rpx;
   background: #fff2f7;
   color: #ff5d97;
   font-size: 24rpx;
+  line-height: 1;
 }
 
 .menu-item {

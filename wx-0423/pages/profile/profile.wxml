@@ -53,14 +53,14 @@
         <text class="section-title">最新发布</text>
         <text class="section-subtitle">你刚刚发布的商品会先展示在这里</text>
       </view>
-      <view wx:for="{{latestPublished}}" wx:key="id" class="mini-product" data-id="{{item.id}}" bindtap="handleOpenDetail">
-        <image class="mini-cover" src="{{item.images[0]}}" mode="aspectFill"></image>
-        <view class="mini-content">
-          <text class="mini-title">{{item.title}}</text>
-          <text class="mini-meta">{{item.idol}} · {{item.category}}</text>
-          <text class="mini-price">¥{{item.price}}</text>
+        <view wx:for="{{latestPublished}}" wx:key="id" class="mini-product" data-id="{{item.id}}" bindtap="handleOpenDetail">
+          <image class="mini-cover" src="{{item.coverImage}}" mode="aspectFill" data-list="latestPublished" data-index="{{index}}" binderror="handleMiniImageError"></image>
+          <view class="mini-content">
+            <text class="mini-title">{{item.title}}</text>
+            <text class="mini-meta">{{item.idolDisplayName || item.idol}} · {{item.category}}</text>
+            <text class="mini-price">¥{{item.price}}</text>
+          </view>
         </view>
-      </view>
     </view>
 
     <view class="section-block">
@@ -70,10 +70,10 @@
       </view>
       <block wx:if="{{favoriteProducts.length}}">
         <view wx:for="{{favoriteProducts}}" wx:key="id" class="mini-product" data-id="{{item.id}}" bindtap="handleOpenDetail">
-          <image class="mini-cover" src="{{item.images[0]}}" mode="aspectFill"></image>
+          <image class="mini-cover" src="{{item.coverImage}}" mode="aspectFill" data-list="favoriteProducts" data-index="{{index}}" binderror="handleMiniImageError"></image>
           <view class="mini-content">
             <text class="mini-title">{{item.title}}</text>
-            <text class="mini-meta">{{item.idol}} · {{item.category}}</text>
+            <text class="mini-meta">{{item.idolDisplayName || item.idol}} · {{item.category}}</text>
             <text class="mini-price">¥{{item.price}}</text>
           </view>
         </view>
@@ -92,7 +92,7 @@
       </view>
       <block wx:if="{{recentViews.length}}">
         <view wx:for="{{recentViews}}" wx:key="id" class="mini-product" data-id="{{item.id}}" bindtap="handleOpenDetail">
-          <image class="mini-cover" src="{{item.images[0]}}" mode="aspectFill"></image>
+          <image class="mini-cover" src="{{item.coverImage}}" mode="aspectFill" data-list="recentViews" data-index="{{index}}" binderror="handleMiniImageError"></image>
           <view class="mini-content">
             <text class="mini-title">{{item.title}}</text>
             <text class="mini-meta">{{item.tradeType}} · {{item.condition}}</text>

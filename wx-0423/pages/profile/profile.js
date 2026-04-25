@@ -1,3 +1,4 @@
+const { PRODUCT_IMAGE_FALLBACK, withCoverImage } = require('../../utils/media')
 const services = require('../../services/index')
 const { getCurrentRoute, syncTabBar } = require('../../utils/tabbar')
 
@@ -16,6 +17,8 @@ Page({
   },
 
   onLoad() {
+    this._pageActive = true
+    this._profileRequestToken = 0
     this.loadProfilePage()
   },
 
@@ -24,12 +27,21 @@ Page({
     this.loadProfilePage({ silent: true })
   },
 
+  onUnload() {
+    this._pageActive = false
+    this._profileRequestToken += 1
+  },
+
   async loadProfilePage(options = {}) {
+    const requestToken = ++this._profileRequestToken
     if (!options.silent) {
       this.setData({ loading: true })
     }
 
     const data = await services.getProfilePageData()
+    if (!this._pageActive || requestToken !== this._profileRequestToken) {
+      return
+    }
     this.setData({
       loading: false,
       profile: data.profile,
@@ -37,9 +49,9 @@ Page({
       stats: data.stats,
       orderShortcuts: data.orderShortcuts,
       menuItems: data.menuItems,
-      favoriteProducts: data.favoriteProducts,
-      recentViews: data.recentViews,
-      latestPublished: data.latestPublished,
+      favoriteProducts: withCoverImage(data.favoriteProducts),
+      recentViews: withCoverImage(data.recentViews),
+      latestPublished: withCoverImage(data.latestPublished),
       policyHighlights: data.policyHighlights,
     })
     getApp().syncGlobalData()
@@ -47,7 +59,22 @@ Page({
 
   handleOpenDetail(event) {
     wx.navigateTo({
-      url: `/pages/detail/detail?id=${event.currentTarget.dataset.id}`,
+      url: `/package-sub/detail/detail?id=${event.currentTarget.dataset.id}`,
+    })
+  },
+
+  handleMiniImageError(event) {
+    const { list, index } = event.currentTarget.dataset
+    if (!list && list !== 0) {
+      return
+    }
+
+    if (!this.data[list] || !this.data[list][index] || this.data[list][index].coverImage === PRODUCT_IMAGE_FALLBACK) {
+      return
+    }
+
+    this.setData({
+      [`${list}[${index}].coverImage`]: PRODUCT_IMAGE_FALLBACK,
     })
   },
 
@@ -60,7 +87,13 @@ Page({
 
   async handleClearRecent() {
     await services.clearProfileRecentViews()
+    if (!this._pageActive) {
+      return
+    }
     await getApp().syncGlobalData()
+    if (!this._pageActive) {
+      return
+    }
     this.loadProfilePage({ silent: true })
   },
 })

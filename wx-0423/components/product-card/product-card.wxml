@@ -1,9 +1,9 @@
 <view class="product-card" bindtap="handleOpen">
-  <image class="cover" src="{{product.images[0]}}" mode="aspectFill"></image>
+  <image class="cover" src="{{coverSrc}}" mode="aspectFill" binderror="handleCoverError"></image>
   <view class="cover-badge">{{product.tradeType}}</view>
   <view class="content">
     <view class="badge-row">
-      <text class="mini-badge">{{product.idol}}</text>
+      <text class="mini-badge">{{product.idolDisplayName || product.idol}}</text>
       <text class="mini-badge badge-secondary">{{product.category}}</text>
     </view>
     <view class="title">{{product.title}}</view>

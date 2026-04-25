@@ -1,5 +1,6 @@
 const services = require('../../services/index')
 const { getCurrentRoute, syncTabBar } = require('../../utils/tabbar')
+const { inferRegionTab, getMemberOptions } = require('../../utils/idol')
 
 const IDOL_TYPE_TABS = [
   { key: 'group', label: '团体' },
@@ -18,24 +19,6 @@ function getIdolOptionsByTab(directory, typeTab, regionTab) {
   return directory[typeTab][regionTab]
 }
 
-function inferIdolTabState(directory, value) {
-  const normalized = (value || '').trim().toLowerCase()
-  if (!normalized) {
-    return { typeTab: 'group', regionTab: 'kpop', isCustom: false }
-  }
-
-  for (const typeTab of Object.keys(directory || {})) {
-    const regionGroup = directory[typeTab] || {}
-    for (const regionTab of Object.keys(regionGroup)) {
-      if (regionGroup[regionTab].some((item) => item.toLowerCase() === normalized)) {
-        return { typeTab, regionTab, isCustom: false }
-      }
-    }
-  }
-
-  return { typeTab: 'group', regionTab: 'kpop', isCustom: true }
-}
-
 function buildCategorySections(options = [], keyword = '', commonCategories = []) {
   const normalizedKeyword = keyword.trim().toLowerCase()
   const filtered = !normalizedKeyword
@@ -46,13 +29,23 @@ function buildCategorySections(options = [], keyword = '', commonCategories = []
   return { common, extra }
 }
 
+function buildIdolDisplayName(idolType, idolGroup, idolMember, soloName) {
+  if (idolType === 'solo') {
+    return soloName || ''
+  }
+  if (idolMember) {
+    return `${idolGroup} · ${idolMember}`
+  }
+  return idolGroup || ''
+}
+
 Page({
   data: {
     loading: true,
     submitting: false,
     tips: [],
-    publishTypeOptions: [],
     idolDirectory: {},
+    memberDirectory: {},
     idolTypeTabs: IDOL_TYPE_TABS,
     idolRegionTabs: IDOL_REGION_TABS,
     idolOptions: [],
@@ -69,9 +62,13 @@ Page({
     selectorTypeTab: 'group',
     selectorRegionTab: 'kpop',
     selectorOptions: [],
+    selectorMemberOptions: [],
+    selectorGroupValue: '',
+    selectorMemberValue: '',
     selectorCommonOptions: [],
     selectorExtraOptions: [],
     selectorCustomVisible: false,
+    selectorCustomKind: '',
     selectorCustomValue: '',
     selectorTouchStartY: 0,
     selectorTouchDeltaY: 0,
@@ -79,10 +76,11 @@ Page({
     tradeTypeOptions: [],
     imageList: [],
     form: {
-      publishType: 'sell',
-      publishTypeLabel: '小卡',
       title: '',
-      idol: '',
+      idolType: '',
+      idolGroup: '',
+      idolMember: '',
+      idolDisplayName: '',
       category: '',
       price: '',
       quantity: '1',
@@ -94,6 +92,8 @@ Page({
   },
 
   onLoad() {
+    this._pageActive = true
+    this._publishRequestToken = 0
     this.loadPublishPage()
   },
 
@@ -101,21 +101,31 @@ Page({
     syncTabBar(getCurrentRoute())
   },
 
+  onUnload() {
+    this._pageActive = false
+    this._publishRequestToken += 1
+  },
+
   async loadPublishPage() {
+    const requestToken = ++this._publishRequestToken
     const data = await services.getPublishPageData()
+    if (!this._pageActive || requestToken !== this._publishRequestToken) {
+      return
+    }
     this.setData({
       loading: false,
       tips: data.tips,
-      publishTypeOptions: data.publishTypeOptions,
       idolDirectory: data.idolDirectory,
+      memberDirectory: data.memberDirectory,
       idolOptions: data.idolOptions,
       categoryOptions: data.categoryOptions,
       categorySections: data.categorySections,
       conditionOptions: data.conditionOptions,
       tradeTypeOptions: data.tradeTypeOptions,
-      'form.publishType': data.publishTypeOptions[0].key,
-      'form.publishTypeLabel': data.publishTypeOptions[0].label,
-      'form.idol': '',
+      'form.idolType': '',
+      'form.idolGroup': '',
+      'form.idolMember': '',
+      'form.idolDisplayName': '',
       'form.category': '',
       'form.condition': data.conditionOptions[0],
       'form.tradeType': data.tradeTypeOptions[0],
@@ -129,15 +139,26 @@ Page({
       : this.data.selectorSearch
     const selectorTypeTab = overrides.selectorTypeTab || this.data.selectorTypeTab
     const selectorRegionTab = overrides.selectorRegionTab || this.data.selectorRegionTab
+    const selectorGroupValue = typeof overrides.selectorGroupValue === 'string'
+      ? overrides.selectorGroupValue
+      : this.data.selectorGroupValue
 
     if (selectorMode === 'idol') {
       const options = getIdolOptionsByTab(this.data.idolDirectory, selectorTypeTab, selectorRegionTab)
+      const memberOptions = selectorTypeTab === 'group'
+        ? getMemberOptions(this.data.memberDirectory, selectorGroupValue)
+        : []
       const normalizedKeyword = selectorSearch.trim().toLowerCase()
       const selectorOptions = !normalizedKeyword
         ? options
         : options.filter((item) => item.toLowerCase().includes(normalizedKeyword))
+      const selectorMemberOptions = !normalizedKeyword
+        ? memberOptions
+        : memberOptions.filter((item) => item.toLowerCase().includes(normalizedKeyword))
+
       return {
         selectorOptions,
+        selectorMemberOptions,
         selectorCommonOptions: [],
         selectorExtraOptions: [],
       }
@@ -151,6 +172,7 @@ Page({
       )
       return {
         selectorOptions: [],
+        selectorMemberOptions: [],
         selectorCommonOptions: sections.common,
         selectorExtraOptions: sections.extra,
       }
@@ -158,9 +180,29 @@ Page({
 
     return {
       selectorOptions: [],
+      selectorMemberOptions: [],
       selectorCommonOptions: [],
       selectorExtraOptions: [],
     }
+  },
+
+  applyIdolSelection(selection) {
+    const idolType = selection.idolType
+    const idolGroup = selection.idolGroup || ''
+    const idolMember = selection.idolMember || ''
+    const idolDisplayName = buildIdolDisplayName(
+      idolType,
+      idolGroup,
+      idolMember,
+      selection.idolDisplayName || ''
+    )
+
+    this.setData({
+      'form.idolType': idolType,
+      'form.idolGroup': idolGroup,
+      'form.idolMember': idolMember,
+      'form.idolDisplayName': idolDisplayName,
+    })
   },
 
   handleChooseImage() {
@@ -205,23 +247,43 @@ Page({
   handleOpenSelector(event) {
     const { mode } = event.currentTarget.dataset
     if (mode === 'idol') {
-      const inferred = inferIdolTabState(this.data.idolDirectory, this.data.form.idol)
+      const selectorTypeTab = this.data.form.idolType || 'group'
+      const sourceValue = selectorTypeTab === 'solo' ? this.data.form.idolDisplayName : this.data.form.idolGroup
+      const selectorRegionTab = inferRegionTab(this.data.idolDirectory, selectorTypeTab, sourceValue)
+      const selectorGroupValue = selectorTypeTab === 'group' ? this.data.form.idolGroup : ''
+      const selectorMemberValue = selectorTypeTab === 'group' ? this.data.form.idolMember : ''
       const selectorState = this.buildSelectorState({
         selectorMode: 'idol',
-        selectorTypeTab: inferred.typeTab,
-        selectorRegionTab: inferred.regionTab,
+        selectorTypeTab,
+        selectorRegionTab,
         selectorSearch: '',
+        selectorGroupValue,
       })
+      const currentTopLevelOptions = getIdolOptionsByTab(this.data.idolDirectory, selectorTypeTab, selectorRegionTab)
+      const memberOptions = getMemberOptions(this.data.memberDirectory, selectorGroupValue)
+      const selectorCustomVisible = selectorTypeTab === 'solo'
+        ? !!this.data.form.idolDisplayName && !currentTopLevelOptions.includes(this.data.form.idolDisplayName)
+        : (
+          (!!selectorGroupValue && !currentTopLevelOptions.includes(selectorGroupValue))
+          || (!!selectorMemberValue && !memberOptions.includes(selectorMemberValue))
+        )
+      const selectorCustomValue = selectorTypeTab === 'solo'
+        ? (selectorCustomVisible ? this.data.form.idolDisplayName : '')
+        : (selectorMemberValue || (selectorCustomVisible ? selectorGroupValue : ''))
+
       this.setData({
         selectorVisible: true,
         selectorExpanded: false,
         selectorMode: 'idol',
         selectorTitle: '选择担名',
         selectorSearch: '',
-        selectorTypeTab: inferred.typeTab,
-        selectorRegionTab: inferred.regionTab,
-        selectorCustomVisible: inferred.isCustom,
-        selectorCustomValue: inferred.isCustom ? this.data.form.idol : '',
+        selectorTypeTab,
+        selectorRegionTab,
+        selectorGroupValue,
+        selectorMemberValue,
+        selectorCustomVisible,
+        selectorCustomValue,
+        selectorCustomKind: selectorTypeTab === 'solo' ? 'solo' : (selectorGroupValue ? 'member' : 'group'),
         ...selectorState,
       })
       return
@@ -238,7 +300,10 @@ Page({
         selectorMode: 'category',
         selectorTitle: '选择分类',
         selectorSearch: '',
+        selectorGroupValue: '',
+        selectorMemberValue: '',
         selectorCustomVisible: false,
+        selectorCustomKind: '',
         selectorCustomValue: '',
         ...selectorState,
       })
@@ -253,9 +318,13 @@ Page({
       selectorTitle: '',
       selectorSearch: '',
       selectorOptions: [],
+      selectorMemberOptions: [],
+      selectorGroupValue: '',
+      selectorMemberValue: '',
       selectorCommonOptions: [],
       selectorExtraOptions: [],
       selectorCustomVisible: false,
+      selectorCustomKind: '',
       selectorCustomValue: '',
       selectorTouchStartY: 0,
       selectorTouchDeltaY: 0,
@@ -321,9 +390,21 @@ Page({
 
     this.setData({
       selectorTypeTab,
+      selectorRegionTab: selectorTypeTab === 'solo'
+        ? inferRegionTab(this.data.idolDirectory, 'solo', this.data.form.idolDisplayName)
+        : inferRegionTab(this.data.idolDirectory, 'group', this.data.form.idolGroup),
+      selectorGroupValue: selectorTypeTab === 'group' ? this.data.form.idolGroup : '',
+      selectorMemberValue: selectorTypeTab === 'group' ? this.data.form.idolMember : '',
       selectorCustomVisible: false,
+      selectorCustomKind: '',
       selectorCustomValue: '',
-      ...this.buildSelectorState({ selectorTypeTab }),
+      ...this.buildSelectorState({
+        selectorTypeTab,
+        selectorRegionTab: selectorTypeTab === 'solo'
+          ? inferRegionTab(this.data.idolDirectory, 'solo', this.data.form.idolDisplayName)
+          : inferRegionTab(this.data.idolDirectory, 'group', this.data.form.idolGroup),
+        selectorGroupValue: selectorTypeTab === 'group' ? this.data.form.idolGroup : '',
+      }),
     })
   },
 
@@ -335,9 +416,15 @@ Page({
 
     this.setData({
       selectorRegionTab,
+      selectorGroupValue: this.data.selectorTypeTab === 'group' ? '' : this.data.selectorGroupValue,
+      selectorMemberValue: '',
       selectorCustomVisible: false,
+      selectorCustomKind: '',
       selectorCustomValue: '',
-      ...this.buildSelectorState({ selectorRegionTab }),
+      ...this.buildSelectorState({
+        selectorRegionTab,
+        selectorGroupValue: this.data.selectorTypeTab === 'group' ? '' : this.data.selectorGroupValue,
+      }),
     })
   },
 
@@ -348,21 +435,70 @@ Page({
     }
 
     if (this.data.selectorMode === 'idol') {
+      if (this.data.selectorTypeTab === 'solo') {
+        this.applyIdolSelection({
+          idolType: 'solo',
+          idolDisplayName: value,
+        })
+        this.handleCloseSelector()
+        return
+      }
+
       this.setData({
-        'form.idol': value,
+        selectorGroupValue: value,
+        selectorMemberValue: '',
+        selectorCustomVisible: false,
+        selectorCustomKind: '',
+        selectorCustomValue: '',
+        ...this.buildSelectorState({
+          selectorGroupValue: value,
+          selectorMemberValue: '',
+        }),
       })
-    } else if (this.data.selectorMode === 'category') {
+      return
+    }
+
+    if (this.data.selectorMode === 'category') {
       this.setData({
         'form.category': value,
       })
+      this.handleCloseSelector()
     }
+  },
+
+  handleSelectorMemberTap(event) {
+    const nextMember = event.currentTarget.dataset.value || ''
+    if (!this.data.selectorGroupValue) {
+      return
+    }
+
+    this.applyIdolSelection({
+      idolType: 'group',
+      idolGroup: this.data.selectorGroupValue,
+      idolMember: nextMember,
+    })
     this.handleCloseSelector()
   },
 
-  handleOpenSelectorCustom() {
+  handleOpenSelectorCustom(event) {
+    const kind = event.currentTarget.dataset.kind || 'solo'
+    let selectorCustomValue = ''
+    if (this.data.selectorMode === 'idol') {
+      if (kind === 'solo') {
+        selectorCustomValue = this.data.form.idolType === 'solo' ? this.data.form.idolDisplayName : ''
+      } else if (kind === 'group') {
+        selectorCustomValue = this.data.selectorGroupValue && !this.data.selectorOptions.includes(this.data.selectorGroupValue)
+          ? this.data.selectorGroupValue
+          : ''
+      } else {
+        selectorCustomValue = this.data.selectorMemberValue
+      }
+    }
+
     this.setData({
       selectorCustomVisible: true,
-      selectorCustomValue: this.data.selectorMode === 'idol' ? this.data.form.idol : '',
+      selectorCustomKind: kind,
+      selectorCustomValue,
     })
   },
 
@@ -376,27 +512,36 @@ Page({
     const nextValue = this.data.selectorCustomValue.trim()
     if (!nextValue) {
       wx.showToast({
-        title: '请输入担名',
+        title: this.data.selectorCustomKind === 'member' ? '请输入成员名' : '请输入担名',
         icon: 'none',
       })
       return
     }
 
-    this.setData({
-      'form.idol': nextValue,
-    })
+    if (this.data.selectorMode === 'idol') {
+      if (this.data.selectorCustomKind === 'solo') {
+        this.applyIdolSelection({
+          idolType: 'solo',
+          idolDisplayName: nextValue,
+        })
+      } else if (this.data.selectorCustomKind === 'group') {
+        this.applyIdolSelection({
+          idolType: 'group',
+          idolGroup: nextValue,
+          idolMember: '',
+        })
+      } else if (this.data.selectorGroupValue) {
+        this.applyIdolSelection({
+          idolType: 'group',
+          idolGroup: this.data.selectorGroupValue,
+          idolMember: nextValue,
+        })
+      }
+    }
     this.handleCloseSelector()
   },
 
   noop() {
-  },
-
-  handlePublishTypeSelect(event) {
-    const { key, label } = event.currentTarget.dataset
-    this.setData({
-      'form.publishType': key,
-      'form.publishTypeLabel': label,
-    })
   },
 
   handleTradeTypeSelect(event) {
@@ -416,7 +561,7 @@ Page({
 
     if (!imageList.length) return '请至少上传 1 张商品图片'
     if (!form.title.trim()) return '请填写商品标题'
-    if (!form.idol) return '请选择担名'
+    if (!form.idolDisplayName) return '请选择担名'
     if (!form.category) return '请选择商品分类'
     if (!form.price || Number(form.price) < 0) return '请填写正确的价格'
     if (!form.quantity || Number(form.quantity) <= 0) return '请填写正确的数量'
@@ -442,7 +587,13 @@ Page({
       ...this.data.form,
       images: this.data.imageList,
     })
+    if (!this._pageActive) {
+      return
+    }
     await getApp().syncGlobalData()
+    if (!this._pageActive) {
+      return
+    }
     this.setData({ submitting: false })
     wx.showToast({
       title: '商品发布成功',

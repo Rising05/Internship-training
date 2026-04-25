@@ -1,0 +1,8 @@
+{
+  "name": "wx-0423",
+  "private": true,
+  "scripts": {
+    "backend:start": "node backend/server.js",
+    "backend:test": "node backend/scripts/test-api.js"
+  }
+}

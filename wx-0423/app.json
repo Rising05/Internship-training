@@ -3,9 +3,16 @@
     "pages/index/index",
     "pages/publish/publish",
     "pages/messages/messages",
-    "pages/profile/profile",
-    "pages/detail/detail",
-    "pages/chat/chat"
+    "pages/profile/profile"
+  ],
+  "subpackages": [
+    {
+      "root": "package-sub",
+      "pages": [
+        "detail/detail",
+        "chat/chat"
+      ]
+    }
   ],
   "window": {
     "navigationBarTextStyle": "black",
@@ -48,6 +55,7 @@
     ]
   },
   "style": "v2",
+  "lazyCodeLoading": "requiredComponents",
   "componentFramework": "glass-easel",
   "sitemapLocation": "sitemap.json"
 }

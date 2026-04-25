@@ -1,5 +1,6 @@
 const services = require('../../services/index')
 const { getCurrentRoute, syncTabBar } = require('../../utils/tabbar')
+const { getMemberOptions } = require('../../utils/idol')
 
 const DEFAULT_QUICK_ENTRY_COUNT = 4
 const IDOL_COLLAPSED_THRESHOLD = 10
@@ -12,6 +13,43 @@ const IDOL_REGION_TABS = [
   { key: 'jpop', label: 'JPOP' },
   { key: 'cpop', label: '内娱' },
 ]
+
+function isBannerWithinSchedule(banner = {}) {
+  const now = Date.now()
+  const startAt = banner.startAt ? new Date(banner.startAt).getTime() : null
+  const endAt = banner.endAt ? new Date(banner.endAt).getTime() : null
+
+  if (Number.isFinite(startAt) && startAt > now) {
+    return false
+  }
+
+  if (Number.isFinite(endAt) && endAt < now) {
+    return false
+  }
+
+  return true
+}
+
+function normalizeBanners(banners = []) {
+  if (!Array.isArray(banners)) {
+    return []
+  }
+
+  return banners
+    .filter((item) => item && item.enabled !== false && item.image && isBannerWithinSchedule(item))
+    .sort((prev, next) => (prev.sort || 0) - (next.sort || 0))
+    .map((item) => ({
+      id: item.id,
+      title: item.title || '',
+      subtitle: item.subtitle || '',
+      image: item.image,
+      imagePosition: item.imagePosition || 'center center',
+      targetType: item.targetType || 'navigate',
+      targetUrl: item.targetUrl || '',
+      ctaText: item.ctaText || '',
+      analyticsName: item.analyticsName || item.id || '',
+    }))
+}
 
 function splitColumns(list) {
   const leftColumn = []
@@ -50,34 +88,53 @@ function isCustomIdolValue(idolOptions, value) {
   return !!value && value !== '全部' && !idolOptions.includes(value)
 }
 
+function getCurrentIdolSelection(idolTypeTab, activeGroup, activeSolo) {
+  return idolTypeTab === 'group' ? activeGroup : activeSolo
+}
+
+function getMemberButtonText(activeMember) {
+  return activeMember && activeMember !== '全部' ? activeMember : '选成员'
+}
+
 Page({
   data: {
     loading: true,
     loadingMore: false,
     keyword: '',
     draftKeyword: '',
-    hero: {},
+    banners: [],
+    activeBannerIndex: 0,
+    bannerFallbackVisible: false,
     quickEntries: [],
     searchSuggestions: [],
     idolDirectory: {},
+    memberDirectory: {},
     idolOptions: [],
     idolTypeTabs: IDOL_TYPE_TABS,
     idolRegionTabs: IDOL_REGION_TABS,
     idolTypeTab: 'group',
     idolRegionTab: 'kpop',
     visibleIdolOptions: [],
+    currentIdolSelection: '全部',
+    memberButtonText: '选成员',
     canExpandIdolList: false,
     isIdolListExpanded: false,
     categoryOptions: [],
     feedModes: [],
     visibleQuickEntries: [],
     hiddenQuickEntryCount: 0,
-    activeIdol: '全部',
+    activeGroup: '全部',
+    activeMember: '全部',
+    activeSolo: '全部',
     activeCategory: '全部',
     activeFeed: 'latest',
     isCategoryExpanded: false,
     showCustomIdolInput: false,
     customIdolDraft: '',
+    memberSelectorVisible: false,
+    memberSelectorOptions: [],
+    showCustomMemberInput: false,
+    customMemberDraft: '',
     pageIndex: 1,
     pageSize: 6,
     totalCount: 0,
@@ -88,6 +145,8 @@ Page({
   },
 
   onLoad() {
+    this._pageActive = true
+    this._homeRequestToken = 0
     this.loadHome({ reset: true })
   },
 
@@ -96,9 +155,13 @@ Page({
     this.loadHome({ reset: false, silent: true })
   },
 
+  onUnload() {
+    this._pageActive = false
+    this._homeRequestToken += 1
+  },
+
   getExpandStatePayload(nextState = {}) {
     const quickEntries = nextState.quickEntries || this.data.quickEntries
-    const activeIdol = typeof nextState.activeIdol === 'string' ? nextState.activeIdol : this.data.activeIdol
     const activeCategory = typeof nextState.activeCategory === 'string'
       ? nextState.activeCategory
       : this.data.activeCategory
@@ -108,16 +171,22 @@ Page({
     const idolDirectory = nextState.idolDirectory || this.data.idolDirectory
     const idolTypeTab = nextState.idolTypeTab || this.data.idolTypeTab
     const idolRegionTab = nextState.idolRegionTab || this.data.idolRegionTab
+    const activeGroup = typeof nextState.activeGroup === 'string' ? nextState.activeGroup : this.data.activeGroup
+    const activeSolo = typeof nextState.activeSolo === 'string' ? nextState.activeSolo : this.data.activeSolo
+    const activeMember = typeof nextState.activeMember === 'string' ? nextState.activeMember : this.data.activeMember
 
     return {
       visibleQuickEntries: buildVisibleQuickEntries(quickEntries, isCategoryExpanded, activeCategory),
       hiddenQuickEntryCount: Math.max(0, quickEntries.length - DEFAULT_QUICK_ENTRY_COUNT),
       visibleIdolOptions: buildVisibleIdolOptions(idolDirectory, idolTypeTab, idolRegionTab),
       canExpandIdolList: buildVisibleIdolOptions(idolDirectory, idolTypeTab, idolRegionTab).length - 1 > IDOL_COLLAPSED_THRESHOLD,
+      currentIdolSelection: getCurrentIdolSelection(idolTypeTab, activeGroup, activeSolo),
+      memberButtonText: getMemberButtonText(activeMember),
     }
   },
 
   async loadHome(options = {}) {
+    const requestToken = ++this._homeRequestToken
     const nextPageIndex = typeof options.pageIndex === 'number'
       ? options.pageIndex
       : (options.reset ? 1 : this.data.pageIndex)
@@ -130,31 +199,43 @@ Page({
 
     const result = await services.getHomeData({
       keyword: typeof options.keyword === 'string' ? options.keyword : this.data.keyword,
-      activeIdol: this.data.activeIdol,
+      idolTypeTab: this.data.idolTypeTab,
+      activeGroup: this.data.activeGroup,
+      activeMember: this.data.activeMember,
+      activeSolo: this.data.activeSolo,
       activeCategory: this.data.activeCategory,
       activeFeed: this.data.activeFeed,
       pageIndex: nextPageIndex,
       pageSize: this.data.pageSize,
     })
+    if (!this._pageActive || requestToken !== this._homeRequestToken) {
+      return
+    }
     const columns = splitColumns(result.items)
+    const normalizedBanners = normalizeBanners(result.banners)
     const expandState = this.getExpandStatePayload({
       quickEntries: result.quickEntries,
       idolDirectory: result.idolDirectory,
-      activeIdol: this.data.activeIdol,
       activeCategory: this.data.activeCategory,
       isCategoryExpanded: this.data.isCategoryExpanded,
       idolTypeTab: this.data.idolTypeTab,
       idolRegionTab: this.data.idolRegionTab,
+      activeGroup: this.data.activeGroup,
+      activeSolo: this.data.activeSolo,
+      activeMember: this.data.activeMember,
     })
 
     this.setData({
       loading: false,
       loadingMore: false,
       keyword: typeof options.keyword === 'string' ? options.keyword : this.data.keyword,
-      hero: result.hero,
+      banners: normalizedBanners,
+      activeBannerIndex: 0,
+      bannerFallbackVisible: !normalizedBanners.length,
       quickEntries: result.quickEntries,
       searchSuggestions: result.searchSuggestions,
       idolDirectory: result.idolDirectory,
+      memberDirectory: result.memberDirectory,
       idolOptions: result.idolOptions,
       categoryOptions: result.categoryOptions,
       feedModes: result.feedModes,
@@ -168,7 +249,7 @@ Page({
     })
     getApp().syncGlobalData()
 
-    if (options.scrollToFeed) {
+    if (options.scrollToFeed && this._pageActive && requestToken === this._homeRequestToken) {
       this.scrollToFeed()
     }
   },
@@ -197,12 +278,29 @@ Page({
   },
 
   handleIdolSelect(event) {
-    const nextActiveIdol = event.detail.value
-    this.setData({
-      activeIdol: nextActiveIdol,
-      showCustomIdolInput: false,
-      customIdolDraft: '',
-    })
+    const nextValue = event.detail.value
+    if (this.data.idolTypeTab === 'group') {
+      this.setData({
+        activeGroup: nextValue,
+        activeMember: '全部',
+        showCustomIdolInput: false,
+        customIdolDraft: '',
+        showCustomMemberInput: false,
+        customMemberDraft: '',
+        memberSelectorVisible: false,
+        ...this.getExpandStatePayload({
+          activeGroup: nextValue,
+          activeMember: '全部',
+        }),
+      })
+    } else {
+      this.setData({
+        activeSolo: nextValue,
+        showCustomIdolInput: false,
+        customIdolDraft: '',
+        ...this.getExpandStatePayload({ activeSolo: nextValue }),
+      })
+    }
     this.loadHome({ reset: true })
   },
 
@@ -243,18 +341,27 @@ Page({
       nextTypeTab,
       this.data.idolRegionTab
     )
-    const keepCustom = isCustomIdolValue(this.data.idolOptions, this.data.activeIdol)
-    const nextActiveIdol = keepCustom || nextVisibleIdolOptions.includes(this.data.activeIdol)
-      ? this.data.activeIdol
-      : '全部'
+    const currentSelection = getCurrentIdolSelection(nextTypeTab, this.data.activeGroup, this.data.activeSolo)
+    const keepCustom = isCustomIdolValue(this.data.idolOptions, currentSelection)
+    const nextSelection = keepCustom || nextVisibleIdolOptions.includes(currentSelection) ? currentSelection : '全部'
+    const nextActiveMember = nextTypeTab === 'group' && nextSelection === this.data.activeGroup ? this.data.activeMember : '全部'
 
     this.setData({
       idolTypeTab: nextTypeTab,
-      activeIdol: nextActiveIdol,
+      activeGroup: nextTypeTab === 'group' ? nextSelection : this.data.activeGroup,
+      activeSolo: nextTypeTab === 'solo' ? nextSelection : this.data.activeSolo,
+      activeMember: nextActiveMember,
       isIdolListExpanded: false,
+      showCustomIdolInput: false,
+      customIdolDraft: '',
+      memberSelectorVisible: false,
+      showCustomMemberInput: false,
+      customMemberDraft: '',
       ...this.getExpandStatePayload({
         idolTypeTab: nextTypeTab,
-        activeIdol: nextActiveIdol,
+        activeGroup: nextTypeTab === 'group' ? nextSelection : this.data.activeGroup,
+        activeSolo: nextTypeTab === 'solo' ? nextSelection : this.data.activeSolo,
+        activeMember: nextActiveMember,
       }),
     })
     this.loadHome({ reset: true })
@@ -271,25 +378,33 @@ Page({
       this.data.idolTypeTab,
       nextRegionTab
     )
-    const keepCustom = isCustomIdolValue(this.data.idolOptions, this.data.activeIdol)
-    const nextActiveIdol = keepCustom || nextVisibleIdolOptions.includes(this.data.activeIdol)
-      ? this.data.activeIdol
-      : '全部'
+    const currentSelection = getCurrentIdolSelection(this.data.idolTypeTab, this.data.activeGroup, this.data.activeSolo)
+    const keepCustom = isCustomIdolValue(this.data.idolOptions, currentSelection)
+    const nextSelection = keepCustom || nextVisibleIdolOptions.includes(currentSelection) ? currentSelection : '全部'
+    const nextActiveMember = this.data.idolTypeTab === 'group' && nextSelection === this.data.activeGroup ? this.data.activeMember : '全部'
 
     this.setData({
       idolRegionTab: nextRegionTab,
-      activeIdol: nextActiveIdol,
+      activeGroup: this.data.idolTypeTab === 'group' ? nextSelection : this.data.activeGroup,
+      activeSolo: this.data.idolTypeTab === 'solo' ? nextSelection : this.data.activeSolo,
+      activeMember: nextActiveMember,
       isIdolListExpanded: false,
+      memberSelectorVisible: false,
+      showCustomMemberInput: false,
+      customMemberDraft: '',
       ...this.getExpandStatePayload({
         idolRegionTab: nextRegionTab,
-        activeIdol: nextActiveIdol,
+        activeGroup: this.data.idolTypeTab === 'group' ? nextSelection : this.data.activeGroup,
+        activeSolo: this.data.idolTypeTab === 'solo' ? nextSelection : this.data.activeSolo,
+        activeMember: nextActiveMember,
       }),
     })
     this.loadHome({ reset: true })
   },
 
   handleOpenCustomIdol() {
-    const nextDraft = this.data.idolOptions.includes(this.data.activeIdol) ? '' : this.data.activeIdol
+    const currentValue = getCurrentIdolSelection(this.data.idolTypeTab, this.data.activeGroup, this.data.activeSolo)
+    const nextDraft = this.data.idolOptions.includes(currentValue) ? '' : currentValue
     this.setData({
       showCustomIdolInput: true,
       customIdolDraft: nextDraft,
@@ -307,8 +422,8 @@ Page({
   },
 
   handleApplyCustomIdol() {
-    const nextActiveIdol = this.data.customIdolDraft.trim()
-    if (!nextActiveIdol) {
+    const nextValue = this.data.customIdolDraft.trim()
+    if (!nextValue) {
       wx.showToast({
         title: '请输入担名',
         icon: 'none',
@@ -316,10 +431,98 @@ Page({
       return
     }
 
+    if (this.data.idolTypeTab === 'group') {
+      this.setData({
+        activeGroup: nextValue,
+        activeMember: '全部',
+        showCustomIdolInput: true,
+        customIdolDraft: nextValue,
+        ...this.getExpandStatePayload({
+          activeGroup: nextValue,
+          activeMember: '全部',
+        }),
+      })
+    } else {
+      this.setData({
+        activeSolo: nextValue,
+        showCustomIdolInput: true,
+        customIdolDraft: nextValue,
+        ...this.getExpandStatePayload({ activeSolo: nextValue }),
+      })
+    }
+    this.loadHome({ reset: true })
+  },
+
+  handleOpenMemberSelector() {
+    if (this.data.idolTypeTab !== 'group' || this.data.activeGroup === '全部') {
+      return
+    }
+
+    const memberSelectorOptions = getMemberOptions(this.data.memberDirectory, this.data.activeGroup)
+    const nextDraft = memberSelectorOptions.includes(this.data.activeMember) || this.data.activeMember === '全部'
+      ? ''
+      : this.data.activeMember
+
     this.setData({
-      activeIdol: nextActiveIdol,
-      showCustomIdolInput: true,
-      customIdolDraft: nextActiveIdol,
+      memberSelectorVisible: true,
+      memberSelectorOptions,
+      showCustomMemberInput: !!nextDraft,
+      customMemberDraft: nextDraft,
+    })
+  },
+
+  handleCloseMemberSelector() {
+    this.setData({
+      memberSelectorVisible: false,
+      showCustomMemberInput: false,
+      customMemberDraft: '',
+    })
+  },
+
+  handleSelectMember(event) {
+    const nextMember = event.currentTarget.dataset.member || '全部'
+    this.setData({
+      activeMember: nextMember,
+      memberSelectorVisible: false,
+      showCustomMemberInput: false,
+      customMemberDraft: '',
+      ...this.getExpandStatePayload({ activeMember: nextMember }),
+    })
+    this.loadHome({ reset: true })
+  },
+
+  handleOpenCustomMember() {
+    const nextDraft = this.data.memberSelectorOptions.includes(this.data.activeMember) || this.data.activeMember === '全部'
+      ? ''
+      : this.data.activeMember
+    this.setData({
+      showCustomMemberInput: true,
+      customMemberDraft: nextDraft,
+    })
+  },
+
+  handleCustomMemberInput(event) {
+    this.setData({
+      customMemberDraft: event.detail.value,
+    })
+  },
+
+  handleApplyCustomMember() {
+    const nextMember = this.data.customMemberDraft.trim()
+    if (!nextMember) {
+      wx.showToast({
+        title: '请输入成员名',
+        icon: 'none',
+      })
+      return
+    }
+
+    this.setData({
+      activeMember: nextMember,
+      memberSelectorVisible: false,
+      showCustomMemberInput: false,
+      customMemberDraft: nextMember,
+      ...this.getExpandStatePayload({ activeMember: nextMember }),
     })
     this.loadHome({ reset: true })
   },
@@ -337,7 +540,49 @@ Page({
 
   handleOpenProduct(event) {
     wx.navigateTo({
-      url: `/pages/detail/detail?id=${event.detail.id}`,
+      url: `/package-sub/detail/detail?id=${event.detail.id}`,
+    })
+  },
+
+  handleBannerChange(event) {
+    this.setData({
+      activeBannerIndex: event.detail.current || 0,
+    })
+  },
+
+  handleBannerDotTap(event) {
+    const index = Number(event.currentTarget.dataset.index)
+    if (!Number.isInteger(index) || index < 0 || index >= this.data.banners.length) {
+      return
+    }
+
+    this.setData({
+      activeBannerIndex: index,
+    })
+  },
+
+  handleBannerTap(event) {
+    const index = Number(event.currentTarget.dataset.index || 0)
+    const banner = this.data.banners[index]
+    if (!banner || !banner.targetUrl) {
+      return
+    }
+
+    if (banner.targetType === 'switchTab') {
+      wx.switchTab({
+        url: banner.targetUrl,
+      })
+      return
+    }
+
+    wx.navigateTo({
+      url: banner.targetUrl,
+    })
+  },
+
+  handleBannerImageError() {
+    this.setData({
+      bannerFallbackVisible: true,
     })
   },
 
@@ -351,7 +596,9 @@ Page({
     this.setData({
       keyword: '',
       draftKeyword: '',
-      activeIdol: '全部',
+      activeGroup: '全部',
+      activeMember: '全部',
+      activeSolo: '全部',
       activeCategory: '全部',
       activeFeed: 'latest',
       idolTypeTab: 'group',
@@ -359,9 +606,14 @@ Page({
       isIdolListExpanded: false,
       showCustomIdolInput: false,
       customIdolDraft: '',
+      memberSelectorVisible: false,
+      showCustomMemberInput: false,
+      customMemberDraft: '',
       pageIndex: 1,
       ...this.getExpandStatePayload({
-        activeIdol: '全部',
+        activeGroup: '全部',
+        activeMember: '全部',
+        activeSolo: '全部',
         idolTypeTab: 'group',
         idolRegionTab: 'kpop',
       }),

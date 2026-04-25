@@ -3,13 +3,56 @@
 
   <view class="page-shell">
     <view class="hero-card">
-      <image class="hero-cover-image" src="/static/image/cropped/home-hero-cover.png" mode="aspectFill" />
+      <swiper
+        wx:if="{{banners.length && !bannerFallbackVisible}}"
+        class="hero-swiper"
+        circular
+        autoplay
+        interval="4200"
+        duration="320"
+        current="{{activeBannerIndex}}"
+        bindchange="handleBannerChange"
+      >
+        <swiper-item wx:for="{{banners}}" wx:key="id">
+          <view class="hero-slide" data-index="{{index}}" bindtap="handleBannerTap">
+            <image
+              class="hero-cover-image"
+              src="{{item.image}}"
+              style="object-position: {{item.imagePosition}};"
+              mode="aspectFill"
+              binderror="handleBannerImageError"
+            />
+            <view class="hero-banner-copy">
+              <text class="hero-banner-title">{{item.title}}</text>
+              <text class="hero-banner-subtitle">{{item.subtitle}}</text>
+              <text wx:if="{{item.ctaText}}" class="hero-banner-cta">{{item.ctaText}}</text>
+            </view>
+          </view>
+        </swiper-item>
+      </swiper>
+      <view wx:if="{{banners.length > 1 && !bannerFallbackVisible}}" class="hero-dots">
+        <view
+          wx:for="{{banners}}"
+          wx:key="id"
+          class="hero-dot {{activeBannerIndex === index ? 'hero-dot-active' : ''}}"
+          data-index="{{index}}"
+          catchtap="handleBannerDotTap"
+        ></view>
+      </view>
+      <view wx:else class="hero-fallback-bg">
+        <view class="hero-copy">
+          <text class="hero-eyebrow">饭圈周边交易空间</text>
+          <text class="hero-title">星仓</text>
+          <text class="hero-subtitle">饭圈周边交易 · 买卖交换平台</text>
+          <text class="hero-announcement">后续这里会切成可配置轮播广告位，支持活动图和专题入口。</text>
+        </view>
+      </view>
     </view>
 
     <view class="section-block">
       <view class="section-head">
         <text class="section-title">首页分类</text>
-        <text class="section-subtitle">小卡、吧唧、应援物快速筛选</text>
+        <text class="section-subtitle">小卡、吧唧、应援物等快速筛选</text>
       </view>
       <view class="quick-grid">
         <view
@@ -81,13 +124,20 @@
             wx:key="*this"
             label="{{item}}"
             value="{{item}}"
-            active="{{activeIdol === item}}"
+            active="{{currentIdolSelection === item}}"
             bind:select="handleIdolSelect"
           />
         </view>
       </view>
 
       <view class="idol-group-actions">
+        <view
+          wx:if="{{idolTypeTab === 'group' && activeGroup !== '全部'}}"
+          class="chip-action chip-action-soft"
+          bindtap="handleOpenMemberSelector"
+        >
+          {{memberButtonText}}
+        </view>
         <filter-chip
           wx:if="{{canExpandIdolList && !isIdolListExpanded}}"
           label="更多"
@@ -118,6 +168,57 @@
         />
         <view class="custom-idol-submit" bindtap="handleApplyCustomIdol">确定</view>
       </view>
+    </view>
+
+    <view wx:if="{{memberSelectorVisible}}" class="member-mask" bindtap="handleCloseMemberSelector"></view>
+    <view wx:if="{{memberSelectorVisible}}" class="member-sheet">
+      <view class="member-sheet-handle"></view>
+      <view class="member-sheet-head">
+        <view>
+          <text class="member-sheet-title">选择成员</text>
+          <text class="member-sheet-subtitle">{{activeGroup}} 成员筛选</text>
+        </view>
+        <view class="member-sheet-close" bindtap="handleCloseMemberSelector">×</view>
+      </view>
+      <scroll-view scroll-y class="member-sheet-scroll">
+        <view class="member-chip-grid">
+          <view
+            class="member-chip {{activeMember === '全部' ? 'member-chip-active' : ''}}"
+            data-member="全部"
+            bindtap="handleSelectMember"
+          >
+            整团
+          </view>
+          <view
+            wx:for="{{memberSelectorOptions}}"
+            wx:key="*this"
+            class="member-chip {{activeMember === item ? 'member-chip-active' : ''}}"
+            data-member="{{item}}"
+            bindtap="handleSelectMember"
+          >
+            {{item}}
+          </view>
+        </view>
+        <view class="member-sheet-actions">
+          <view
+            class="chip-action {{showCustomMemberInput ? 'chip-action-active' : ''}}"
+            bindtap="handleOpenCustomMember"
+          >
+            其他成员
+          </view>
+        </view>
+        <view wx:if="{{showCustomMemberInput}}" class="custom-idol-box member-custom-box">
+          <input
+            class="custom-idol-input"
+            placeholder="输入成员名"
+            value="{{customMemberDraft}}"
+            bindinput="handleCustomMemberInput"
+            bindconfirm="handleApplyCustomMember"
+            confirm-type="done"
+          />
+          <view class="custom-idol-submit" bindtap="handleApplyCustomMember">确定</view>
+        </view>
+      </scroll-view>
     </view>
 
     <view class="search-card">

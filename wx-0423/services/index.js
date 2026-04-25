@@ -1,9 +1,10 @@
 const { activeProvider } = require('./config')
 
-const providers = {
-  mock: require('./mock/provider'),
+const providerLoaders = {
+  mock: () => require('./mock/provider'),
+  http: () => require('./http/provider'),
 }
 
-const provider = providers[activeProvider] || providers.mock
+const loadProvider = providerLoaders[activeProvider] || providerLoaders.mock
 
-module.exports = provider
+module.exports = loadProvider()

@@ -1,10 +1,10 @@
 const {
   idolDirectory,
+  memberDirectory,
   idolOptions,
   categoryOptions,
   conditionOptions,
   tradeTypeOptions,
-  publishTypeOptions,
   homeQuickEntries,
   feedModes,
   searchSuggestions,
@@ -20,6 +20,7 @@ const {
   getBaseProductById,
   getBaseConversationById,
 } = require('../../utils/mock')
+const { normalizeIdolPayload } = require('../../utils/idol')
 const {
   ensureStorageDefaults,
   getFavorites,
@@ -30,11 +31,13 @@ const {
   getProfile,
   setProfile,
   getAuthSession,
+  setAuthSession,
   getMessageState,
   markMessageRead,
   getPublishedProducts,
   addPublishedProduct,
   getChatThreads,
+  setChatThreads,
   appendChatMessage,
 } = require('../../utils/storage')
 
@@ -43,6 +46,56 @@ function simulate(data, options = {}) {
   return new Promise((resolve) => {
     setTimeout(() => resolve(data), delay)
   })
+}
+
+function buildHomeBanners() {
+  return [
+    {
+      id: 'banner-home-01',
+      title: '星仓开站引导',
+      subtitle: '发布你的第一条交易信息',
+      image: '/static/image/cropped/home-hero-cover.jpg',
+      targetType: 'switchTab',
+      targetUrl: '/pages/publish/publish',
+      ctaText: '立即发布',
+      enabled: true,
+      sort: 10,
+      startAt: '2026-01-01T00:00:00+08:00',
+      endAt: '2027-01-01T00:00:00+08:00',
+      analyticsName: 'home_publish_banner',
+      imagePosition: 'center center',
+    },
+    {
+      id: 'banner-home-02',
+      title: '活动专题预留',
+      subtitle: '后续可直接接运营活动与限时专区',
+      image: '/static/image/cropped/home-hero-cover.jpg',
+      targetType: 'navigate',
+      targetUrl: '/package-sub/detail/detail?id=xc001',
+      ctaText: '查看专题',
+      enabled: true,
+      sort: 20,
+      startAt: '2026-01-01T00:00:00+08:00',
+      endAt: '2027-01-01T00:00:00+08:00',
+      analyticsName: 'home_campaign_banner',
+      imagePosition: '68% center',
+    },
+    {
+      id: 'banner-home-03',
+      title: '消息触达预留',
+      subtitle: '也可以接公告、福利和广告跳转',
+      image: '/static/image/cropped/home-hero-cover.jpg',
+      targetType: 'switchTab',
+      targetUrl: '/pages/messages/messages',
+      ctaText: '查看消息',
+      enabled: true,
+      sort: 30,
+      startAt: '2026-01-01T00:00:00+08:00',
+      endAt: '2027-01-01T00:00:00+08:00',
+      analyticsName: 'home_message_banner',
+      imagePosition: '32% center',
+    },
+  ]
 }
 
 function createId(prefix) {
@@ -145,10 +198,28 @@ function bootstrapApp() {
   }, { delay: 20 })
 }
 
+function ensureSession() {
+  ensureStorageDefaults()
+  const current = getAuthSession()
+  if (current.loggedIn && current.openid) {
+    return simulate(current, { delay: 20 })
+  }
+
+  const profile = getProfile()
+  return simulate(setAuthSession({
+    loggedIn: true,
+    nickname: profile.nickname,
+    openid: 'mock-openid',
+  }), { delay: 20 })
+}
+
 function getHomeData(params = {}) {
   const {
     keyword = '',
-    activeIdol = '全部',
+    idolTypeTab = 'group',
+    activeGroup = '全部',
+    activeMember = '全部',
+    activeSolo = '全部',
     activeCategory = '全部',
     activeFeed = 'latest',
     pageIndex = 1,
@@ -156,15 +227,27 @@ function getHomeData(params = {}) {
   } = params
   const favorites = getFavorites()
   const normalizedKeyword = keyword.trim().toLowerCase()
-  const normalizedIdol = activeIdol.trim().toLowerCase()
+  const normalizedGroup = activeGroup.trim().toLowerCase()
+  const normalizedMember = activeMember.trim().toLowerCase()
+  const normalizedSolo = activeSolo.trim().toLowerCase()
   const normalizedCategory = activeCategory.trim().toLowerCase()
 
   let filtered = sortProductsByCreatedAt(getAllProducts()).filter((item) => {
     const matchKeyword = !normalizedKeyword
       || item.title.toLowerCase().includes(normalizedKeyword)
-      || item.idol.toLowerCase().includes(normalizedKeyword)
+      || item.idolDisplayName.toLowerCase().includes(normalizedKeyword)
+      || item.idolGroup.toLowerCase().includes(normalizedKeyword)
+      || item.idolMember.toLowerCase().includes(normalizedKeyword)
       || item.category.toLowerCase().includes(normalizedKeyword)
-    const matchIdol = activeIdol === '全部' || item.idol.toLowerCase().includes(normalizedIdol)
+    const matchIdol = idolTypeTab === 'group'
+      ? (
+        (activeGroup === '全部' || item.idolGroup.toLowerCase().includes(normalizedGroup))
+        && (activeMember === '全部' || item.idolMember.toLowerCase().includes(normalizedMember))
+      )
+      : (activeSolo === '全部' || (
+        item.idolType === 'solo'
+        && item.idolDisplayName.toLowerCase().includes(normalizedSolo)
+      ))
     const matchCategory = activeCategory === '全部' || [
       item.category,
       item.title,
@@ -180,15 +263,12 @@ function getHomeData(params = {}) {
   const sliced = filtered.slice(0, pageIndex * pageSize).map((item) => createProductCard(item, favorites))
 
   return simulate({
-    hero: {
-      title: '星仓',
-      subtitle: '饭圈周边交易 · 买卖交换平台',
-      announcement: '让热爱有处安放，先完成前端结构，再平滑接入后端。',
-    },
+    banners: buildHomeBanners(),
     quickEntries: homeQuickEntries,
     searchSuggestions,
     idolOptions,
     idolDirectory,
+    memberDirectory,
     categoryOptions,
     feedModes,
     totalCount,
@@ -234,9 +314,9 @@ function getPublishPageData() {
   const profile = getProfile()
   const publishCategoryOptions = categoryOptions.slice(1)
   return simulate({
-    publishTypeOptions,
     idolOptions: idolOptions.slice(1),
     idolDirectory,
+    memberDirectory,
     categoryOptions: publishCategoryOptions,
     categorySections: {
       common: publishCategoryOptions.slice(0, 5),
@@ -259,10 +339,9 @@ function getPublishPageData() {
 function submitProduct(payload) {
   const profile = getProfile()
   const tradeType = payload.tradeType || '出物'
-  const nextProduct = {
+  const nextProduct = normalizeIdolPayload({
     id: createId('ugc'),
     title: payload.title.trim(),
-    idol: payload.idol,
     category: payload.category,
     price: Number(payload.price),
     quantity: Number(payload.quantity) || 1,
@@ -270,8 +349,12 @@ function submitProduct(payload) {
     condition: payload.condition,
     tradeType,
     shippingFee: Number(payload.shippingFee || 0),
-    tags: [payload.publishTypeLabel, tradeType].filter(Boolean),
+    tags: [payload.category, tradeType].filter(Boolean),
     note: payload.note.trim(),
+    idolType: payload.idolType,
+    idolGroup: payload.idolGroup,
+    idolMember: payload.idolMember,
+    idolDisplayName: payload.idolDisplayName,
     seller: {
       id: profile.id,
       name: profile.nickname,
@@ -284,7 +367,7 @@ function submitProduct(payload) {
     isLatest: true,
     conversationId: 'conv001',
     createdAt: new Date().toISOString(),
-  }
+  })
 
   addPublishedProduct(nextProduct)
   setProfile({
@@ -417,6 +500,7 @@ function resetThreadStore() {
 }
 
 module.exports = {
+  ensureSession,
   bootstrapApp,
   getHomeData,
   getProductDetail,

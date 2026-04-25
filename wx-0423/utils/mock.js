@@ -1,113 +1,91 @@
+const { normalizeIdolPayload } = require('./idol')
+const customIdolConfig = require('../data/idol-config')
+
+const PRODUCT_REMOTE_THEMES = {
+  xc001: { bg: 'ffe3ee', fg: '8d6b79', labels: ['时代少年团 刘耀文', '官拆小卡 细节图'] },
+  xc002: { bg: 'fce5ef', fg: '7b6570', labels: ['SEVENTEEN WONWOO', '边角细节展示'] },
+  xc003: { bg: 'ffe8db', fg: '8f6b5f', labels: ['IVE 张元英 吧唧'] },
+  xc004: { bg: 'efe7ff', fg: '655c88', labels: ['aespa 柳智敏', '仅拆封检查'] },
+  xc005: { bg: 'e6f4ff', fg: '5a7484', labels: ['EXO BAEKHYUN', '亚克力立牌底座'] },
+  xc006: { bg: 'e7fff4', fg: '56756d', labels: ['TXT BEOMGYU', '交换专区 求换同类'] },
+}
+
+function encodePlaceholderText(value = '') {
+  return encodeURIComponent(value).replace(/%20/g, '+')
+}
+
+function buildRemoteImages(productId, count) {
+  const theme = PRODUCT_REMOTE_THEMES[productId] || { bg: 'fff0f5', fg: '8f7f88', labels: [] }
+  return Array.from({ length: count }, (_, index) => {
+    const label = theme.labels[index] || `${productId.toUpperCase()}-${index + 1}`
+    return `https://dummyimage.com/1080x1080/${theme.bg}/${theme.fg}.png&text=${encodePlaceholderText(label)}`
+  })
+}
+
+function normalizeDirectoryKey(value = '') {
+  return value.trim().toLowerCase()
+}
+
+function mergeUnique(base = [], extra = []) {
+  const seen = new Set()
+  const result = []
+
+  base.concat(extra).forEach((item) => {
+    const value = typeof item === 'string' ? item.trim() : ''
+    const normalized = normalizeDirectoryKey(value)
+    if (!normalized || seen.has(normalized)) {
+      return
+    }
+    seen.add(normalized)
+    result.push(value)
+  })
+
+  return result
+}
+
+function mergeMemberDirectory(base = {}, extra = {}) {
+  const merged = { ...base }
+
+  Object.keys(extra).forEach((groupName) => {
+    merged[groupName] = mergeUnique(base[groupName] || [], extra[groupName] || [])
+  })
+
+  return merged
+}
+
+function buildIdolOptionsFromDirectory(directory = {}) {
+  return mergeUnique(
+    ['全部'],
+    []
+      .concat(directory.group.kpop || [])
+      .concat(directory.group.jpop || [])
+      .concat(directory.group.cpop || [])
+      .concat(directory.solo.kpop || [])
+      .concat(directory.solo.jpop || [])
+      .concat(directory.solo.cpop || [])
+  )
+}
+
+function createProduct(data) {
+  return normalizeIdolPayload(data)
+}
+
 const idolDirectory = {
   group: {
-    kpop: [
-      'BTS',
-      'BLACKPINK',
-      'TWICE',
-      'EXO',
-      'SEVENTEEN',
-      'BIGBANG',
-      'Stray Kids',
-      'TXT',
-      'ENHYPEN',
-      'ATEEZ',
-      'NCT',
-      'RIIZE',
-      'aespa',
-      'IVE',
-      '(G)I-DLE',
-      'LE SSERAFIM',
-      'NewJeans',
-      'STAYC',
-      'ITZY',
-      'Kep1er',
-      'ZEROBASEONE',
-      'BOYNEXTDOOR',
-      'TWS',
-    ],
-    jpop: [
-      'YOASOBI',
-      'Official髭男dism',
-      'King Gnu',
-      'RADWIMPS',
-      'Snow Man',
-      'SixTONES',
-      'なにわ男子',
-      'JO1',
-      'INI',
-      'Perfume',
-      '乃木坂46',
-      '櫻坂46',
-      '日向坂46',
-      'Creepy Nuts',
-      'back number',
-    ],
-    cpop: [
-      '时代少年团',
-      'INTO1',
-    ],
+    kpop: mergeUnique([], customIdolConfig.idolDirectory.group.kpop || []),
+    jpop: mergeUnique([], customIdolConfig.idolDirectory.group.jpop || []),
+    cpop: mergeUnique([], customIdolConfig.idolDirectory.group.cpop || []),
   },
   solo: {
-    kpop: [
-      'Jungkook',
-      'Jimin',
-      'V',
-      'SUGA',
-      'Jennie',
-      'Lisa',
-      'Rosé',
-      'Jisoo',
-      'IU',
-      '权志龙',
-      '柳智敏',
-      '张元英',
-    ],
-    jpop: [
-      '米津玄师',
-      'Ado',
-      '藤井风',
-      'Vaundy',
-      'imase',
-      'ano',
-    ],
-    cpop: [
-      '周杰伦',
-      '蔡依林',
-      '华晨宇',
-      '张艺兴',
-      '王一博',
-      '肖战',
-      '邓紫棋',
-      '毛不易',
-      '李荣浩',
-      '周深',
-      '单依纯',
-      '刘耀文',
-      '丁程鑫',
-      '张真源',
-      '赵露思',
-      '虞书欣',
-      '白鹿',
-      '王鹤棣',
-      '张凌赫',
-      '王嘉尔',
-      '刘雨昕',
-      '蔡徐坤',
-      '张碧晨',
-      '欧阳娜娜',
-    ],
+    kpop: mergeUnique([], customIdolConfig.idolDirectory.solo.kpop || []),
+    jpop: mergeUnique([], customIdolConfig.idolDirectory.solo.jpop || []),
+    cpop: mergeUnique([], customIdolConfig.idolDirectory.solo.cpop || []),
   },
 }
 
-const idolOptions = [
-  '全部',
-  ...idolDirectory.group.kpop,
-  ...idolDirectory.group.jpop,
-  ...idolDirectory.group.cpop,
-  ...idolDirectory.solo.kpop,
-  ...idolDirectory.solo.jpop,
-  ...idolDirectory.solo.cpop,
-]
+const memberDirectory = mergeMemberDirectory({}, customIdolConfig.memberDirectory || {})
+
+const idolOptions = buildIdolOptionsFromDirectory(idolDirectory)
 
 const categoryOptions = [
   '全部',
@@ -115,7 +93,6 @@ const categoryOptions = [
   '吧唧',
   '应援物',
   '立牌',
-  '谷子',
   '海报',
   '玩偶',
   '手幅',
@@ -126,22 +103,14 @@ const conditionOptions = ['全新', '近全新', '轻微瑕疵', '明显瑕疵']
 
 const tradeTypeOptions = ['出物', '交换', '求收']
 
-const publishTypeOptions = [
-  { key: 'sell', label: '小卡', iconPath: '/static/image/cropped/category-photocard.png' },
-  { key: 'badge', label: '吧唧', iconPath: '/static/image/cropped/category-badge.png' },
-  { key: 'goods', label: '应援物', iconPath: '/static/image/cropped/category-support.png' },
-  { key: 'other', label: '谷子', iconPath: '/static/image/cropped/category-folder.png' },
-]
-
 const homeQuickEntries = [
   { key: 'photocard', label: '小卡', iconPath: '/static/image/cropped/category-photocard.png', category: '小卡' },
   { key: 'badge', label: '吧唧', iconPath: '/static/image/cropped/category-badge.png', category: '吧唧' },
   { key: 'support', label: '应援物', iconPath: '/static/image/cropped/category-support.png', category: '应援物' },
-  { key: 'goods', label: '谷子', iconPath: '/static/image/cropped/category-folder.png', category: '谷子' },
-  { key: 'standee', label: '立牌', iconPath: '/static/image/cropped/category-support.png', category: '立牌' },
-  { key: 'poster', label: '海报', iconPath: '/static/image/cropped/category-folder.png', category: '海报' },
-  { key: 'plush', label: '玩偶', iconPath: '/static/image/cropped/category-support.png', category: '玩偶' },
-  { key: 'other', label: '其他', iconPath: '/static/image/cropped/category-folder.png', category: '其他' },
+  { key: 'standee', label: '立牌', iconPath: '/static/image/cropped/category-standee.png', category: '立牌' },
+  { key: 'poster', label: '海报', iconPath: '/static/image/cropped/category-poster.png', category: '海报' },
+  { key: 'plush', label: '玩偶', iconPath: '/static/image/cropped/category-plush.png', category: '玩偶' },
+  { key: 'other', label: '其他', iconPath: '/static/image/cropped/category-other.png', category: '其他' },
 ]
 
 const feedModes = [
@@ -185,14 +154,16 @@ const policyHighlights = [
 ]
 
 const products = [
-  {
+  createProduct({
     id: 'xc001',
     title: '明星小卡官拆 全新未拆',
-    idol: '时代少年团',
+    idolType: 'group',
+    idolGroup: '时代少年团',
+    idolMember: '刘耀文',
     category: '小卡',
     price: 12,
     quantity: 1,
-    images: ['/static/image/1.png', '/static/image/2.png'],
+    images: buildRemoteImages('xc001', 2),
     condition: '全新',
     tradeType: '出物',
     shippingFee: 6,
@@ -210,15 +181,17 @@ const products = [
     isLatest: true,
     conversationId: 'conv001',
     createdAt: '2026-04-24T10:12:00+08:00',
-  },
-  {
+  }),
+  createProduct({
     id: 'xc002',
     title: '明星小卡兔兔脸 官拆免瑕',
-    idol: 'SEVENTEEN',
+    idolType: 'group',
+    idolGroup: 'SEVENTEEN',
+    idolMember: 'WONWOO',
     category: '小卡',
     price: 8.8,
     quantity: 1,
-    images: ['/static/image/2.png', '/static/image/1.png'],
+    images: buildRemoteImages('xc002', 2),
     condition: '近全新',
     tradeType: '出物',
     shippingFee: 6,
@@ -236,15 +209,17 @@ const products = [
     isLatest: true,
     conversationId: 'conv002',
     createdAt: '2026-04-24T09:48:00+08:00',
-  },
-  {
+  }),
+  createProduct({
     id: 'xc003',
     title: '萌系Q版应援吧唧 捆出优先',
-    idol: 'IVE',
+    idolType: 'group',
+    idolGroup: 'IVE',
+    idolMember: '张元英',
     category: '吧唧',
     price: 8.8,
     quantity: 2,
-    images: ['/static/image/1.png'],
+    images: buildRemoteImages('xc003', 1),
     condition: '近全新',
     tradeType: '出物',
     shippingFee: 8,
@@ -255,22 +230,24 @@ const products = [
       name: '云朵贩卖机',
       city: '南京',
       level: '学生卖家',
-      intro: '主出平价谷，支持补视频。',
+      intro: '主出平价周边，支持补视频。',
       avatarText: '云',
     },
     isHot: true,
     isLatest: false,
     conversationId: 'conv003',
     createdAt: '2026-04-23T22:00:00+08:00',
-  },
-  {
+  }),
+  createProduct({
     id: 'xc004',
     title: '官方拍立得卡 仅拆封检查',
-    idol: 'aespa',
+    idolType: 'group',
+    idolGroup: 'aespa',
+    idolMember: '柳智敏',
     category: '小卡',
     price: 18,
     quantity: 1,
-    images: ['/static/image/2.png'],
+    images: buildRemoteImages('xc004', 1),
     condition: '全新',
     tradeType: '出物',
     shippingFee: 6,
@@ -288,19 +265,21 @@ const products = [
     isLatest: true,
     conversationId: 'conv004',
     createdAt: '2026-04-24T08:32:00+08:00',
-  },
-  {
+  }),
+  createProduct({
     id: 'xc005',
     title: '成员亚克力立牌 全套带底座',
-    idol: 'NCT DREAM',
+    idolType: 'group',
+    idolGroup: 'EXO',
+    idolMember: 'BAEKHYUN',
     category: '应援物',
     price: 52,
     quantity: 1,
-    images: ['/static/image/1.png', '/static/image/2.png'],
+    images: buildRemoteImages('xc005', 2),
     condition: '近全新',
     tradeType: '出物',
     shippingFee: 10,
-    tags: ['官方谷', '整套出售'],
+    tags: ['官方大物', '整套出售'],
     note: '盒损轻微，亚克力主体无划痕。',
     seller: {
       id: 'seller005',
@@ -314,15 +293,17 @@ const products = [
     isLatest: false,
     conversationId: 'conv005',
     createdAt: '2026-04-22T16:12:00+08:00',
-  },
-  {
+  }),
+  createProduct({
     id: 'xc006',
     title: '交换专区 求换同团同类小卡',
-    idol: 'TXT',
-    category: '谷子',
+    idolType: 'group',
+    idolGroup: 'TXT',
+    idolMember: 'BEOMGYU',
+    category: '其他',
     price: 0,
     quantity: 1,
-    images: ['/static/image/2.png'],
+    images: buildRemoteImages('xc006', 1),
     condition: '轻微瑕疵',
     tradeType: '交换',
     shippingFee: 0,
@@ -340,7 +321,7 @@ const products = [
     isLatest: true,
     conversationId: 'conv006',
     createdAt: '2026-04-24T07:26:00+08:00',
-  },
+  }),
 ]
 
 const conversationMessages = [
@@ -469,11 +450,11 @@ function getBaseConversationById(id) {
 
 module.exports = {
   idolDirectory,
+  memberDirectory,
   idolOptions,
   categoryOptions,
   conditionOptions,
   tradeTypeOptions,
-  publishTypeOptions,
   homeQuickEntries,
   feedModes,
   searchSuggestions,

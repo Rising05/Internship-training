@@ -14,28 +14,6 @@
 
     <view class="section-block">
       <view class="section-head">
-        <text class="section-title">选择类型</text>
-        <text class="section-subtitle">先标记商品主类，再补充明细信息</text>
-      </view>
-      <view class="type-row">
-        <view
-          wx:for="{{publishTypeOptions}}"
-          wx:key="key"
-          class="type-item {{form.publishType === item.key ? 'type-item-active' : ''}}"
-          data-key="{{item.key}}"
-          data-label="{{item.label}}"
-          bindtap="handlePublishTypeSelect"
-        >
-          <view class="type-icon">
-            <image class="type-icon-image" src="{{item.iconPath}}" mode="aspectFit" />
-          </view>
-          <text class="type-label">{{item.label}}</text>
-        </view>
-      </view>
-    </view>
-
-    <view class="section-block">
-      <view class="section-head">
         <text class="section-title">上传图片</text>
         <text class="section-subtitle">最多 9 张，封面建议使用竖图</text>
       </view>
@@ -76,8 +54,8 @@
       <view class="double-row">
         <view class="form-item half-item">
           <text class="form-label">担名</text>
-          <view class="picker-field picker-trigger {{form.idol ? '' : 'picker-placeholder'}}" data-mode="idol" bindtap="handleOpenSelector">
-            <text>{{form.idol || '请选择担名'}}</text>
+          <view class="picker-field picker-trigger {{form.idolDisplayName ? '' : 'picker-placeholder'}}" data-mode="idol" bindtap="handleOpenSelector">
+            <text>{{form.idolDisplayName || '请选择担名'}}</text>
             <text class="picker-arrow">›</text>
           </view>
         </view>
@@ -192,25 +170,56 @@
           <view
             wx:for="{{selectorOptions}}"
             wx:key="*this"
-            class="selector-chip {{form.idol === item ? 'selector-chip-active' : ''}}"
+            class="selector-chip {{selectorTypeTab === 'solo' ? (form.idolDisplayName === item ? 'selector-chip-active' : '') : (selectorGroupValue === item ? 'selector-chip-active' : '')}}"
             data-value="{{item}}"
             bindtap="handleSelectorOptionTap"
           >
             {{item}}
           </view>
         </view>
+        <view wx:if="{{selectorTypeTab === 'group' && selectorGroupValue}}" class="selector-section">
+          <text class="selector-section-title">成员选择</text>
+          <text class="selector-group-note">已选团体：{{selectorGroupValue}}</text>
+          <view class="selector-chip-grid">
+            <view
+              class="selector-chip {{selectorMemberValue ? '' : 'selector-chip-active'}}"
+              data-value=""
+              bindtap="handleSelectorMemberTap"
+            >
+              整团
+            </view>
+            <view
+              wx:for="{{selectorMemberOptions}}"
+              wx:key="*this"
+              class="selector-chip {{selectorMemberValue === item ? 'selector-chip-active' : ''}}"
+              data-value="{{item}}"
+              bindtap="handleSelectorMemberTap"
+            >
+              {{item}}
+            </view>
+          </view>
+        </view>
         <view class="selector-actions">
           <view
-            class="selector-chip selector-chip-soft {{selectorCustomVisible ? 'selector-chip-active' : ''}}"
+            class="selector-chip selector-chip-soft {{selectorCustomVisible && selectorCustomKind === 'group' ? 'selector-chip-active' : ''}}"
+            data-kind="{{selectorTypeTab === 'solo' ? 'solo' : 'group'}}"
             bindtap="handleOpenSelectorCustom"
           >
-            其他
+            {{selectorTypeTab === 'solo' ? '其他担名' : '其他团体'}}
+          </view>
+          <view
+            wx:if="{{selectorTypeTab === 'group' && selectorGroupValue}}"
+            class="selector-chip selector-chip-soft {{selectorCustomVisible && selectorCustomKind === 'member' ? 'selector-chip-active' : ''}}"
+            data-kind="member"
+            bindtap="handleOpenSelectorCustom"
+          >
+            其他成员
           </view>
         </view>
         <view wx:if="{{selectorCustomVisible}}" class="selector-custom-box">
           <input
             class="selector-custom-input"
-            placeholder="输入自定义担名"
+            placeholder="{{selectorCustomKind === 'member' ? '输入其他成员名' : (selectorCustomKind === 'group' ? '输入其他团体名' : '输入自定义担名')}}"
             value="{{selectorCustomValue}}"
             bindinput="handleSelectorCustomInput"
             bindconfirm="handleApplySelectorCustom"
@@ -218,7 +227,7 @@
           />
           <view class="selector-custom-submit" bindtap="handleApplySelectorCustom">确定</view>
         </view>
-        <view wx:if="{{!selectorOptions.length && !selectorCustomVisible}}" class="selector-empty">没有匹配到担名</view>
+        <view wx:if="{{!selectorOptions.length && !selectorMemberOptions.length && !selectorCustomVisible}}" class="selector-empty">没有匹配到担名</view>
       </scroll-view>
     </block>
 

@@ -1,3 +1,5 @@
+const { normalizeIdolPayload } = require('./idol')
+
 const STORAGE_KEYS = {
   favorites: 'xingcang_favorites',
   recentViews: 'xingcang_recent_views',
@@ -35,6 +37,27 @@ function isPlainObject(value) {
   return Object.prototype.toString.call(value) === '[object Object]'
 }
 
+function normalizeLegacyCategoryLabel(value) {
+  return value === '谷子' ? '其他' : value
+}
+
+function normalizeLegacyTags(tags) {
+  if (!Array.isArray(tags)) {
+    return []
+  }
+
+  return tags.map((item) => item === '官方谷' ? '官方大物' : item)
+}
+
+function normalizeProductLike(item) {
+  return {
+    ...item,
+    ...normalizeIdolPayload(item),
+    category: normalizeLegacyCategoryLabel(item.category),
+    tags: normalizeLegacyTags(item.tags),
+  }
+}
+
 function normalizeFavorites(value) {
   return Array.isArray(value) ? value.filter((item) => typeof item === 'string' && item) : []
 }
@@ -47,7 +70,7 @@ function normalizeRecentViews(value) {
   return value
     .filter((item) => isPlainObject(item) && typeof item.id === 'string')
     .map((item) => ({
-      ...item,
+      ...normalizeProductLike(item),
       images: Array.isArray(item.images) ? item.images : [],
     }))
 }
@@ -72,7 +95,9 @@ function normalizeMessageState(value) {
 
 function normalizeProducts(value) {
   return Array.isArray(value)
-    ? value.filter((item) => isPlainObject(item) && typeof item.id === 'string')
+    ? value
+      .filter((item) => isPlainObject(item) && typeof item.id === 'string')
+      .map((item) => normalizeProductLike(item))
     : []
 }
 

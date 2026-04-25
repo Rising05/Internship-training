@@ -1,7 +1,12 @@
 <view class="empty-state">
-  <view class="empty-bubble">
-    <image class="empty-bubble-image" src="/static/image/cropped/logo-main.png" mode="aspectFit" />
-  </view>
+  <image
+    wx:if="{{showLogoImage}}"
+    class="empty-logo-image"
+    src="/static/image/cropped/logo-main.png"
+    mode="aspectFit"
+    binderror="handleLogoError"
+  />
+  <text wx:else class="empty-logo-text">星仓</text>
   <view class="empty-title">{{title}}</view>
   <view class="empty-description">{{description}}</view>
   <button wx:if="{{actionText}}" class="empty-action" bindtap="handleAction">{{actionText}}</button>

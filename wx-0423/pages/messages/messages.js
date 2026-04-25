@@ -10,6 +10,8 @@ Page({
   },
 
   onLoad() {
+    this._pageActive = true
+    this._messagesRequestToken = 0
     this.loadMessages()
   },
 
@@ -18,11 +20,20 @@ Page({
     this.loadMessages({ silent: true })
   },
 
+  onUnload() {
+    this._pageActive = false
+    this._messagesRequestToken += 1
+  },
+
   async loadMessages(options = {}) {
+    const requestToken = ++this._messagesRequestToken
     if (!options.silent) {
       this.setData({ loading: true })
     }
     const data = await services.getMessagesPageData(this.data.activeTab)
+    if (!this._pageActive || requestToken !== this._messagesRequestToken) {
+      return
+    }
     this.setData({
       loading: false,
       tabs: data.tabs,
@@ -41,11 +52,17 @@ Page({
   async handleMessageTap(event) {
     const { id } = event.currentTarget.dataset
     await services.markMessageAsRead(this.data.activeTab, id)
+    if (!this._pageActive) {
+      return
+    }
     await getApp().syncGlobalData()
+    if (!this._pageActive) {
+      return
+    }
 
     if (this.data.activeTab === 'conversation') {
       wx.navigateTo({
-        url: `/pages/chat/chat?id=${id}`,
+        url: `/package-sub/chat/chat?id=${id}`,
       })
       return
     }

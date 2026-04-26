@@ -9,7 +9,7 @@ const { readBackendConfig } = require('./config')
 
 const UPLOADS_DIR = path.join(__dirname, '..', 'uploads')
 const DEFAULT_PAGE_SIZE = 6
-const MAX_PAGE_SIZE = 20
+const MAX_PAGE_SIZE = 60
 const MAX_PRODUCT_IMAGES = 9
 const MAX_PRODUCT_TITLE_LENGTH = 60
 const MAX_PRODUCT_NOTE_LENGTH = 500
@@ -390,27 +390,31 @@ function filterProducts(db, params) {
   const normalizedCategory = normalizeQueryValue(activeCategory)
 
   return sortProductsByCreatedAt(getActiveProducts(db)).filter((item) => {
+    const keywordTarget = [
+      item.title,
+      item.idolDisplayName,
+      item.idolGroup,
+      item.idolMember,
+      item.category,
+      item.note,
+      ...(item.tags || []),
+    ].join(' ').toLowerCase()
     const matchKeyword = !normalizedKeyword
-      || item.title.toLowerCase().includes(normalizedKeyword)
-      || item.idolDisplayName.toLowerCase().includes(normalizedKeyword)
-      || item.idolGroup.toLowerCase().includes(normalizedKeyword)
-      || item.idolMember.toLowerCase().includes(normalizedKeyword)
-      || item.category.toLowerCase().includes(normalizedKeyword)
+      || keywordTarget.includes(normalizedKeyword)
     const matchIdol = idolTypeTab === 'group'
       ? (
         (activeGroup === '全部' || item.idolGroup.toLowerCase().includes(normalizedGroup))
-        && (activeMember === '全部' || item.idolMember.toLowerCase().includes(normalizedMember))
+        && (
+          activeGroup === '全部'
+          || activeMember === '全部'
+          || item.idolMember.toLowerCase().includes(normalizedMember)
+        )
       )
       : (activeSolo === '全部' || (
         item.idolType === 'solo'
         && item.idolDisplayName.toLowerCase().includes(normalizedSolo)
       ))
-    const matchCategory = activeCategory === '全部' || [
-      item.category,
-      item.title,
-      item.note,
-      ...(item.tags || []),
-    ].join(' ').toLowerCase().includes(normalizedCategory)
+    const matchCategory = activeCategory === '全部' || item.category.toLowerCase() === normalizedCategory
     const matchFeed = activeFeed === 'hot' ? item.isHot : item.isLatest
     return matchKeyword && matchIdol && matchCategory && matchFeed
   })
@@ -564,7 +568,9 @@ async function getHomeData(headers, params = {}) {
     max: MAX_PAGE_SIZE,
   })
   const filtered = filterProducts(db, params)
-  const sliced = filtered.slice(0, pageIndex * pageSize).map((item) => createProductCard(item, favoriteIds))
+  const startIndex = (pageIndex - 1) * pageSize
+  const endIndex = startIndex + pageSize
+  const sliced = filtered.slice(startIndex, endIndex).map((item) => createProductCard(item, favoriteIds))
 
   return {
     banners: getHomeBanners(),
@@ -577,7 +583,7 @@ async function getHomeData(headers, params = {}) {
     feedModes: db.dictionaries.feedModes,
     totalCount: getActiveProducts(db).length,
     matchedCount: filtered.length,
-    hasMore: sliced.length < filtered.length,
+    hasMore: endIndex < filtered.length,
     items: sliced,
   }
 }

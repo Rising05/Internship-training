@@ -45,6 +45,13 @@
   gap: 16rpx;
 }
 
+.image-grid-error {
+  padding: 12rpx;
+  border-radius: 28rpx;
+  background: #fff1f5;
+  box-shadow: inset 0 0 0 2rpx #ff9fbd;
+}
+
 .image-item,
 .image-picker {
   position: relative;
@@ -105,6 +112,11 @@
   font-size: 24rpx;
 }
 
+.label-required {
+  margin-right: 6rpx;
+  color: #ff5d97;
+}
+
 .double-row {
   display: flex;
   gap: 16rpx;
@@ -121,6 +133,7 @@
   border-radius: 24rpx;
   background: #fff6fa;
   color: #3f2d38;
+  box-sizing: border-box;
 }
 
 .form-input,
@@ -150,6 +163,37 @@
   min-height: 220rpx;
   padding: 24rpx;
   line-height: 1.7;
+}
+
+.field-error {
+  background: #fff1f5;
+  box-shadow: inset 0 0 0 2rpx #ff9fbd;
+}
+
+.error-text {
+  display: block;
+  margin-top: 10rpx;
+  color: #e64980;
+  font-size: 22rpx;
+  line-height: 1.5;
+}
+
+.field-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  margin-top: 10rpx;
+}
+
+.form-hint,
+.form-count {
+  color: #a18d97;
+  font-size: 22rpx;
+}
+
+.form-count {
+  flex-shrink: 0;
 }
 
 .chip-row {

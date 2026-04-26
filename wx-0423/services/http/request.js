@@ -48,12 +48,28 @@ function buildRequestError(message, responseData) {
   return error
 }
 
+function extractErrorMessage(error, fallback = 'Request failed') {
+  if (!error) {
+    return fallback
+  }
+
+  if (typeof error === 'string') {
+    return error
+  }
+
+  return error.message
+    || error.errMsg
+    || (error.responseData && error.responseData.message)
+    || fallback
+}
+
 function request(options) {
   const {
     url,
     method = 'GET',
     data,
     header = {},
+    timeout: requestTimeout = timeout,
   } = options
 
   return new Promise((resolve, reject) => {
@@ -61,7 +77,7 @@ function request(options) {
       url: buildUrl(url),
       method,
       data,
-      timeout,
+      timeout: requestTimeout,
       header: buildHeaders(header),
       success(response) {
         const { statusCode, data: responseData } = response
@@ -76,7 +92,10 @@ function request(options) {
         ))
       },
       fail(error) {
-        reject(error)
+        reject(buildRequestError(
+          extractErrorMessage(error, 'Request failed'),
+          error && error.responseData
+        ))
       },
     })
   })
@@ -124,7 +143,10 @@ function uploadFile(filePath, options = {}) {
         ))
       },
       fail(error) {
-        reject(error)
+        reject(buildRequestError(
+          extractErrorMessage(error, 'Upload failed'),
+          error && error.responseData
+        ))
       },
     })
   })
@@ -174,7 +196,10 @@ function uploadFileToCloud(filePath) {
         })
       },
       fail(error) {
-        reject(error)
+        reject(buildRequestError(
+          extractErrorMessage(error, 'Cloud upload failed'),
+          error
+        ))
       },
     })
   })

@@ -1,4 +1,5 @@
 const { request, uploadImages } = require('./request')
+const { submitTimeout } = require('./config')
 const { getAuthSession, setAuthSession } = require('../../utils/storage')
 
 function getWechatLoginCode() {
@@ -76,6 +77,7 @@ async function submitProduct(payload) {
   return request({
     url: '/products',
     method: 'POST',
+    timeout: submitTimeout,
     data: {
       ...payload,
       images: nextImages,

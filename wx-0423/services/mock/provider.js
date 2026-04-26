@@ -233,34 +233,40 @@ function getHomeData(params = {}) {
   const normalizedCategory = activeCategory.trim().toLowerCase()
 
   let filtered = sortProductsByCreatedAt(getAllProducts()).filter((item) => {
+    const keywordTarget = [
+      item.title,
+      item.idolDisplayName,
+      item.idolGroup,
+      item.idolMember,
+      item.category,
+      item.note,
+      ...(item.tags || []),
+    ].join(' ').toLowerCase()
     const matchKeyword = !normalizedKeyword
-      || item.title.toLowerCase().includes(normalizedKeyword)
-      || item.idolDisplayName.toLowerCase().includes(normalizedKeyword)
-      || item.idolGroup.toLowerCase().includes(normalizedKeyword)
-      || item.idolMember.toLowerCase().includes(normalizedKeyword)
-      || item.category.toLowerCase().includes(normalizedKeyword)
+      || keywordTarget.includes(normalizedKeyword)
     const matchIdol = idolTypeTab === 'group'
       ? (
         (activeGroup === '全部' || item.idolGroup.toLowerCase().includes(normalizedGroup))
-        && (activeMember === '全部' || item.idolMember.toLowerCase().includes(normalizedMember))
+        && (
+          activeGroup === '全部'
+          || activeMember === '全部'
+          || item.idolMember.toLowerCase().includes(normalizedMember)
+        )
       )
       : (activeSolo === '全部' || (
         item.idolType === 'solo'
         && item.idolDisplayName.toLowerCase().includes(normalizedSolo)
       ))
-    const matchCategory = activeCategory === '全部' || [
-      item.category,
-      item.title,
-      item.note,
-      ...(item.tags || []),
-    ].join(' ').toLowerCase().includes(normalizedCategory)
+    const matchCategory = activeCategory === '全部' || item.category.toLowerCase() === normalizedCategory
     const matchFeed = activeFeed === 'hot' ? item.isHot : item.isLatest
     return matchKeyword && matchIdol && matchCategory && matchFeed
   })
 
   const totalCount = getAllProducts().length
   const matchedCount = filtered.length
-  const sliced = filtered.slice(0, pageIndex * pageSize).map((item) => createProductCard(item, favorites))
+  const startIndex = (pageIndex - 1) * pageSize
+  const endIndex = startIndex + pageSize
+  const sliced = filtered.slice(startIndex, endIndex).map((item) => createProductCard(item, favorites))
 
   return simulate({
     banners: buildHomeBanners(),
@@ -273,7 +279,7 @@ function getHomeData(params = {}) {
     feedModes,
     totalCount,
     matchedCount,
-    hasMore: sliced.length < matchedCount,
+    hasMore: endIndex < matchedCount,
     items: sliced,
   })
 }

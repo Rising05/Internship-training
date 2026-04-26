@@ -24,6 +24,20 @@ async function request(path, options = {}) {
   return data
 }
 
+function buildQuery(path, params = {}) {
+  const search = new URLSearchParams()
+
+  Object.keys(params).forEach((key) => {
+    const value = params[key]
+    if (value !== undefined && value !== null && value !== '') {
+      search.set(key, String(value))
+    }
+  })
+
+  const serialized = search.toString()
+  return serialized ? `${path}?${serialized}` : path
+}
+
 async function resolveTestOpenid() {
   if (process.env.TEST_OPENID) {
     return process.env.TEST_OPENID
@@ -57,6 +71,64 @@ async function run() {
   const home = await request('/home?pageIndex=1&pageSize=6', { headers })
   assert.ok(Array.isArray(home.items))
   assert.ok(home.items.length > 0)
+
+  const firstPage = await request(buildQuery('/home', {
+    pageIndex: 1,
+    pageSize: 2,
+  }), { headers })
+  const secondPage = await request(buildQuery('/home', {
+    pageIndex: 2,
+    pageSize: 2,
+  }), { headers })
+  assert.equal(firstPage.items.length, 2)
+  assert.equal(secondPage.items.length, 2)
+  assert.equal(
+    firstPage.items.filter((item) => secondPage.items.some((candidate) => candidate.id === item.id)).length,
+    0
+  )
+
+  const categoryHome = await request(buildQuery('/home', {
+    pageIndex: 1,
+    pageSize: 20,
+    activeCategory: '小卡',
+  }), { headers })
+  assert.ok(categoryHome.matchedCount < categoryHome.totalCount)
+  assert.ok(categoryHome.items.length > 0)
+  assert.ok(categoryHome.items.every((item) => item.category === '小卡'))
+
+  const idolHome = await request(buildQuery('/home', {
+    pageIndex: 1,
+    pageSize: 20,
+    activeGroup: '时代少年团',
+    activeMember: '刘耀文',
+  }), { headers })
+  assert.ok(idolHome.items.length > 0)
+  assert.ok(idolHome.items.every((item) => item.idolGroup.includes('时代少年团')))
+  assert.ok(idolHome.items.every((item) => item.idolMember.includes('刘耀文')))
+
+  const tagKeywordHome = await request(buildQuery('/home', {
+    pageIndex: 1,
+    pageSize: 20,
+    keyword: '包邮可议',
+  }), { headers })
+  assert.ok(tagKeywordHome.items.some((item) => (item.tags || []).includes('包邮可议')))
+
+  const noteKeywordHome = await request(buildQuery('/home', {
+    pageIndex: 1,
+    pageSize: 20,
+    keyword: '非偏可换',
+  }), { headers })
+  assert.ok(noteKeywordHome.items.some((item) => String(item.note || '').includes('非偏可换')))
+
+  const resetHome = await request(buildQuery('/home', {
+    pageIndex: 1,
+    pageSize: 2,
+  }), { headers })
+  assert.deepEqual(
+    resetHome.items.map((item) => item.id),
+    firstPage.items.map((item) => item.id)
+  )
+  assert.equal(resetHome.hasMore, firstPage.hasMore)
 
   const firstProductId = home.items[0].id
   const detail = await request(`/products/${firstProductId}`, { headers })

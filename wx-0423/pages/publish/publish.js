@@ -11,6 +11,22 @@ const IDOL_REGION_TABS = [
   { key: 'jpop', label: 'JPOP' },
   { key: 'cpop', label: '内娱' },
 ]
+const MAX_PRODUCT_IMAGES = 9
+const MAX_PRODUCT_TITLE_LENGTH = 60
+const MAX_PRODUCT_NOTE_LENGTH = 500
+const MAX_PRODUCT_PRICE = 999999
+const MAX_PRODUCT_QUANTITY = 99
+const MAX_SHIPPING_FEE = 99999
+const VALIDATION_FIELD_ORDER = [
+  'images',
+  'title',
+  'price',
+  'quantity',
+  'idolDisplayName',
+  'category',
+  'shippingFee',
+  'note',
+]
 
 function getIdolOptionsByTab(directory, typeTab, regionTab) {
   if (!directory || !directory[typeTab] || !directory[typeTab][regionTab]) {
@@ -39,10 +55,105 @@ function buildIdolDisplayName(idolType, idolGroup, idolMember, soloName) {
   return idolGroup || ''
 }
 
+function parseOptionalNumber(value) {
+  const normalized = String(value == null ? '' : value).trim()
+  if (!normalized) {
+    return null
+  }
+
+  const numeric = Number(normalized)
+  return Number.isFinite(numeric) ? numeric : Number.NaN
+}
+
+function buildValidationErrors(form = {}, imageList = []) {
+  const errors = {}
+  const title = String(form.title || '').trim()
+  const price = parseOptionalNumber(form.price)
+  const quantity = parseOptionalNumber(form.quantity)
+  const shippingFee = parseOptionalNumber(form.shippingFee)
+  const note = String(form.note || '')
+
+  if (!Array.isArray(imageList) || !imageList.length) {
+    errors.images = '请至少上传 1 张商品图片'
+  } else if (imageList.length > MAX_PRODUCT_IMAGES) {
+    errors.images = `最多上传 ${MAX_PRODUCT_IMAGES} 张商品图片`
+  }
+
+  if (!title) {
+    errors.title = '请填写商品标题'
+  } else if (title.length > MAX_PRODUCT_TITLE_LENGTH) {
+    errors.title = `标题最多 ${MAX_PRODUCT_TITLE_LENGTH} 个字`
+  }
+
+  if (!form.idolDisplayName) {
+    errors.idolDisplayName = '请选择担名'
+  }
+
+  if (!form.category) {
+    errors.category = '请选择商品分类'
+  }
+
+  if (price === null) {
+    errors.price = '请填写价格'
+  } else if (Number.isNaN(price) || price <= 0) {
+    errors.price = '价格必须大于 0'
+  } else if (price > MAX_PRODUCT_PRICE) {
+    errors.price = `价格不能超过 ${MAX_PRODUCT_PRICE}`
+  }
+
+  if (quantity === null) {
+    errors.quantity = '请填写数量'
+  } else if (Number.isNaN(quantity) || quantity <= 0 || !Number.isInteger(quantity)) {
+    errors.quantity = '数量必须是大于 0 的整数'
+  } else if (quantity > MAX_PRODUCT_QUANTITY) {
+    errors.quantity = `数量不能超过 ${MAX_PRODUCT_QUANTITY}`
+  }
+
+  if (shippingFee !== null) {
+    if (Number.isNaN(shippingFee) || shippingFee < 0) {
+      errors.shippingFee = '运费不能小于 0'
+    } else if (shippingFee > MAX_SHIPPING_FEE) {
+      errors.shippingFee = `运费不能超过 ${MAX_SHIPPING_FEE}`
+    }
+  }
+
+  if (note.length > MAX_PRODUCT_NOTE_LENGTH) {
+    errors.note = `描述最多 ${MAX_PRODUCT_NOTE_LENGTH} 个字`
+  }
+
+  return errors
+}
+
+function getFirstValidationMessage(errors = {}) {
+  const firstField = VALIDATION_FIELD_ORDER.find((field) => errors[field])
+  return firstField ? errors[firstField] : ''
+}
+
+function getBackendField(error) {
+  const details = error && error.responseData && error.responseData.details
+  if (!details || !details.field) {
+    return ''
+  }
+
+  return String(details.field)
+}
+
+function getDisplayErrorMessage(error, fallback = '提交失败，请稍后再试') {
+  if (!error) {
+    return fallback
+  }
+
+  return error.message
+    || error.errMsg
+    || (error.responseData && error.responseData.message)
+    || fallback
+}
+
 Page({
   data: {
     loading: true,
     submitting: false,
+    hasSubmitted: false,
     tips: [],
     idolDirectory: {},
     memberDirectory: {},
@@ -75,6 +186,7 @@ Page({
     conditionOptions: [],
     tradeTypeOptions: [],
     imageList: [],
+    errors: {},
     form: {
       title: '',
       idolType: '',
@@ -122,6 +234,8 @@ Page({
       categorySections: data.categorySections,
       conditionOptions: data.conditionOptions,
       tradeTypeOptions: data.tradeTypeOptions,
+      errors: {},
+      hasSubmitted: false,
       'form.idolType': '',
       'form.idolGroup': '',
       'form.idolMember': '',
@@ -197,16 +311,46 @@ Page({
       selection.idolDisplayName || ''
     )
 
-    this.setData({
+    this.applyDataPatch({
       'form.idolType': idolType,
       'form.idolGroup': idolGroup,
       'form.idolMember': idolMember,
       'form.idolDisplayName': idolDisplayName,
+    }, { clearFields: ['idolDisplayName'] })
+  },
+
+  getNextFormFromPatch(patch = {}) {
+    const nextForm = { ...this.data.form }
+
+    Object.keys(patch).forEach((key) => {
+      if (key.startsWith('form.')) {
+        nextForm[key.slice(5)] = patch[key]
+      }
     })
+
+    return nextForm
+  },
+
+  applyDataPatch(patch = {}, options = {}) {
+    const { clearFields = [] } = options
+    const nextPatch = { ...patch }
+
+    if (this.data.hasSubmitted) {
+      nextPatch.errors = buildValidationErrors(
+        this.getNextFormFromPatch(patch),
+        Object.prototype.hasOwnProperty.call(patch, 'imageList') ? patch.imageList : this.data.imageList
+      )
+    } else {
+      clearFields.forEach((field) => {
+        nextPatch[`errors.${field}`] = ''
+      })
+    }
+
+    this.setData(nextPatch)
   },
 
   handleChooseImage() {
-    const remain = 9 - this.data.imageList.length
+    const remain = MAX_PRODUCT_IMAGES - this.data.imageList.length
     if (remain <= 0) {
       return
     }
@@ -215,9 +359,9 @@ Page({
       count: remain,
       sizeType: ['compressed'],
       success: ({ tempFilePaths }) => {
-        this.setData({
+        this.applyDataPatch({
           imageList: this.data.imageList.concat(tempFilePaths),
-        })
+        }, { clearFields: ['images'] })
       },
     })
   },
@@ -232,16 +376,16 @@ Page({
 
   handleDeleteImage(event) {
     const index = event.currentTarget.dataset.index
-    this.setData({
+    this.applyDataPatch({
       imageList: this.data.imageList.filter((_, currentIndex) => currentIndex !== index),
-    })
+    }, { clearFields: ['images'] })
   },
 
   handleTextInput(event) {
     const { field } = event.currentTarget.dataset
-    this.setData({
+    this.applyDataPatch({
       [`form.${field}`]: event.detail.value,
-    })
+    }, { clearFields: [field] })
   },
 
   handleOpenSelector(event) {
@@ -459,9 +603,9 @@ Page({
     }
 
     if (this.data.selectorMode === 'category') {
-      this.setData({
+      this.applyDataPatch({
         'form.category': value,
-      })
+      }, { clearFields: ['category'] })
       this.handleCloseSelector()
     }
   },
@@ -545,62 +689,85 @@ Page({
   },
 
   handleTradeTypeSelect(event) {
-    this.setData({
+    this.applyDataPatch({
       'form.tradeType': event.currentTarget.dataset.value,
     })
   },
 
   handleConditionSelect(event) {
-    this.setData({
+    this.applyDataPatch({
       'form.condition': event.currentTarget.dataset.value,
     })
   },
 
   validateForm() {
-    const { form, imageList } = this.data
-
-    if (!imageList.length) return '请至少上传 1 张商品图片'
-    if (!form.title.trim()) return '请填写商品标题'
-    if (!form.idolDisplayName) return '请选择担名'
-    if (!form.category) return '请选择商品分类'
-    if (!form.price || Number(form.price) < 0) return '请填写正确的价格'
-    if (!form.quantity || Number(form.quantity) <= 0) return '请填写正确的数量'
-    if (Number(form.shippingFee) < 0) return '运费不能小于 0'
-    if (!form.note.trim()) return '请补充商品描述'
-    return ''
+    const errors = buildValidationErrors(this.data.form, this.data.imageList)
+    return {
+      errors,
+      firstMessage: getFirstValidationMessage(errors),
+    }
   },
 
   async handleSubmit() {
-    const errorMessage = this.validateForm()
-    if (errorMessage || this.data.submitting) {
-      if (errorMessage) {
+    const { errors, firstMessage } = this.validateForm()
+    if (this.data.submitting || firstMessage) {
+      if (firstMessage) {
+        this.setData({
+          hasSubmitted: true,
+          errors,
+        })
         wx.showToast({
-          title: errorMessage,
+          title: firstMessage,
           icon: 'none',
         })
       }
       return
     }
 
-    this.setData({ submitting: true })
-    await services.submitProduct({
-      ...this.data.form,
-      images: this.data.imageList,
+    this.setData({
+      submitting: true,
+      hasSubmitted: true,
+      errors,
     })
-    if (!this._pageActive) {
-      return
+
+    try {
+      await services.submitProduct({
+        ...this.data.form,
+        images: this.data.imageList,
+      })
+      if (!this._pageActive) {
+        return
+      }
+      await getApp().syncGlobalData()
+      if (!this._pageActive) {
+        return
+      }
+      this.setData({ submitting: false })
+      wx.showToast({
+        title: '商品发布成功',
+        icon: 'success',
+      })
+      wx.switchTab({
+        url: '/pages/profile/profile',
+      })
+    } catch (error) {
+      if (!this._pageActive) {
+        return
+      }
+
+      const message = getDisplayErrorMessage(error)
+      const backendField = getBackendField(error)
+      const nextPatch = {
+        submitting: false,
+      }
+      if (backendField) {
+        nextPatch[`errors.${backendField}`] = message
+      }
+      this.setData(nextPatch)
+      wx.showToast({
+        title: message,
+        icon: 'none',
+      })
     }
-    await getApp().syncGlobalData()
-    if (!this._pageActive) {
-      return
-    }
-    this.setData({ submitting: false })
-    wx.showToast({
-      title: '商品发布成功',
-      icon: 'success',
-    })
-    wx.switchTab({
-      url: '/pages/profile/profile',
-    })
   },
 })

@@ -96,6 +96,85 @@ function getMemberButtonText(activeMember) {
   return activeMember && activeMember !== '全部' ? activeMember : '选成员'
 }
 
+function normalizeFilterText(value) {
+  return typeof value === 'string' ? value.trim() : ''
+}
+
+function getFeedLabel(feedModes, activeFeed) {
+  const matched = (feedModes || []).find((item) => item.key === activeFeed)
+  return matched ? matched.label : ''
+}
+
+function buildFilterSummary(state = {}) {
+  const summary = []
+  const keyword = normalizeFilterText(state.keyword)
+  const activeCategory = normalizeFilterText(state.activeCategory)
+  const activeGroup = normalizeFilterText(state.activeGroup)
+  const activeMember = normalizeFilterText(state.activeMember)
+  const activeSolo = normalizeFilterText(state.activeSolo)
+
+  if (keyword) {
+    summary.push(`关键词：${keyword}`)
+  }
+
+  if (activeCategory && activeCategory !== '全部') {
+    summary.push(`分类：${activeCategory}`)
+  }
+
+  if (state.idolTypeTab === 'group') {
+    if (activeGroup && activeGroup !== '全部') {
+      summary.push(`团体：${activeGroup}`)
+    }
+
+    if (activeGroup && activeGroup !== '全部' && activeMember && activeMember !== '全部') {
+      summary.push(`成员：${activeMember}`)
+    }
+  } else if (activeSolo && activeSolo !== '全部') {
+    summary.push(`担名：${activeSolo}`)
+  }
+
+  if (state.activeFeed === 'hot') {
+    summary.push(`排序：${getFeedLabel(state.feedModes, state.activeFeed) || '推荐商品'}`)
+  }
+
+  return summary
+}
+
+function buildResultState(state = {}) {
+  const matchedCount = typeof state.matchedCount === 'number' ? state.matchedCount : 0
+  const totalCount = typeof state.totalCount === 'number' ? state.totalCount : 0
+  const filterSummaryTags = buildFilterSummary(state)
+  const hasActiveFilters = filterSummaryTags.length > 0
+
+  return {
+    hasActiveFilters,
+    filterSummaryTags,
+    resultSummaryText: hasActiveFilters
+      ? `共命中 ${matchedCount} 条`
+      : `共 ${totalCount} 条在售商品`,
+    resultSummaryHint: hasActiveFilters
+      ? `当前筛选：${filterSummaryTags.join(' · ')}`
+      : '可按分类、担名、成员和关键词组合筛选',
+    emptyStateDescription: hasActiveFilters
+      ? `当前筛选为 ${filterSummaryTags.join(' · ')}，可以更换条件后继续浏览。`
+      : '你可以更换担位、分类或关键词后继续浏览。',
+  }
+}
+
+function mergeProductList(existingList = [], nextItems = []) {
+  const merged = existingList.slice()
+  const existingIds = new Set(existingList.map((item) => item.id))
+
+  nextItems.forEach((item) => {
+    if (!existingIds.has(item.id)) {
+      existingIds.add(item.id)
+      merged.push(item)
+    }
+  })
+
+  return merged
+}
+
 Page({
   data: {
     loading: true,
@@ -140,8 +219,14 @@ Page({
     totalCount: 0,
     matchedCount: 0,
     hasMore: true,
+    productList: [],
     leftColumn: [],
     rightColumn: [],
+    hasActiveFilters: false,
+    filterSummaryTags: [],
+    resultSummaryText: '',
+    resultSummaryHint: '',
+    emptyStateDescription: '你可以更换担位、分类或关键词后继续浏览。',
   },
 
   onLoad() {
@@ -152,7 +237,7 @@ Page({
 
   onShow() {
     syncTabBar(getCurrentRoute())
-    this.loadHome({ reset: false, silent: true })
+    this.loadHome({ reset: false, silent: true, refreshAllLoaded: true })
   },
 
   onUnload() {
@@ -190,28 +275,41 @@ Page({
     const nextPageIndex = typeof options.pageIndex === 'number'
       ? options.pageIndex
       : (options.reset ? 1 : this.data.pageIndex)
+    const requestedKeyword = typeof options.keyword === 'string' ? options.keyword : this.data.keyword
+    const effectivePageIndex = options.refreshAllLoaded ? 1 : nextPageIndex
+    const effectivePageSize = options.refreshAllLoaded
+      ? Math.max(this.data.pageSize, this.data.pageSize * Math.max(this.data.pageIndex, 1))
+      : this.data.pageSize
+
     if (!options.silent) {
       this.setData({
         loading: options.reset,
-        loadingMore: !options.reset,
+        loadingMore: !options.reset && !options.refreshAllLoaded,
       })
     }
 
     const result = await services.getHomeData({
-      keyword: typeof options.keyword === 'string' ? options.keyword : this.data.keyword,
+      keyword: requestedKeyword,
       idolTypeTab: this.data.idolTypeTab,
       activeGroup: this.data.activeGroup,
       activeMember: this.data.activeMember,
       activeSolo: this.data.activeSolo,
       activeCategory: this.data.activeCategory,
       activeFeed: this.data.activeFeed,
-      pageIndex: nextPageIndex,
-      pageSize: this.data.pageSize,
+      pageIndex: effectivePageIndex,
+      pageSize: effectivePageSize,
     })
     if (!this._pageActive || requestToken !== this._homeRequestToken) {
       return
     }
-    const columns = splitColumns(result.items)
+
+    const nextProductList = options.reset || options.refreshAllLoaded
+      ? result.items.slice()
+      : mergeProductList(this.data.productList, result.items)
+    const resolvedPageIndex = options.refreshAllLoaded
+      ? Math.max(1, Math.ceil(nextProductList.length / this.data.pageSize))
+      : nextPageIndex
+    const columns = splitColumns(nextProductList)
     const normalizedBanners = normalizeBanners(result.banners)
     const expandState = this.getExpandStatePayload({
       quickEntries: result.quickEntries,
@@ -224,11 +322,23 @@ Page({
       activeSolo: this.data.activeSolo,
       activeMember: this.data.activeMember,
     })
+    const resultState = buildResultState({
+      keyword: requestedKeyword,
+      activeCategory: this.data.activeCategory,
+      idolTypeTab: this.data.idolTypeTab,
+      activeGroup: this.data.activeGroup,
+      activeMember: this.data.activeMember,
+      activeSolo: this.data.activeSolo,
+      activeFeed: this.data.activeFeed,
+      feedModes: result.feedModes,
+      totalCount: result.totalCount,
+      matchedCount: result.matchedCount,
+    })
 
     this.setData({
       loading: false,
       loadingMore: false,
-      keyword: typeof options.keyword === 'string' ? options.keyword : this.data.keyword,
+      keyword: requestedKeyword,
       banners: normalizedBanners,
       activeBannerIndex: 0,
       bannerFallbackVisible: !normalizedBanners.length,
@@ -242,10 +352,12 @@ Page({
       totalCount: result.totalCount,
       matchedCount: result.matchedCount,
       hasMore: result.hasMore,
-      pageIndex: nextPageIndex,
+      pageIndex: resolvedPageIndex,
+      productList: nextProductList,
       leftColumn: columns.leftColumn,
       rightColumn: columns.rightColumn,
       ...expandState,
+      ...resultState,
     })
     getApp().syncGlobalData()
 
@@ -535,7 +647,7 @@ Page({
   async handleFavorite(event) {
     await services.toggleProductFavorite(event.detail.id)
     getApp().syncGlobalData()
-    this.loadHome({ reset: false, silent: true })
+    this.loadHome({ reset: false, silent: true, refreshAllLoaded: true })
   },
 
   handleOpenProduct(event) {
@@ -610,6 +722,7 @@ Page({
       showCustomMemberInput: false,
       customMemberDraft: '',
       pageIndex: 1,
+      productList: [],
       ...this.getExpandStatePayload({
         activeGroup: '全部',
         activeMember: '全部',

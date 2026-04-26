@@ -17,7 +17,7 @@
         <text class="section-title">上传图片</text>
         <text class="section-subtitle">最多 9 张，封面建议使用竖图</text>
       </view>
-      <view class="image-grid">
+      <view class="image-grid {{errors.images ? 'image-grid-error' : ''}}">
         <view wx:for="{{imageList}}" wx:key="*this" class="image-item">
           <image class="preview-image" src="{{item}}" mode="aspectFill" data-url="{{item}}" bindtap="handlePreviewImage"></image>
           <view class="delete-badge" data-index="{{index}}" bindtap="handleDeleteImage">×</view>
@@ -27,6 +27,10 @@
           <text class="picker-text">添加图片</text>
         </view>
       </view>
+      <view class="field-foot">
+        <text class="form-hint">已选 {{imageList.length}} / 9 张</text>
+      </view>
+      <text wx:if="{{errors.images}}" class="error-text">{{errors.images}}</text>
     </view>
 
     <view class="section-block">
@@ -36,35 +40,40 @@
       </view>
 
       <view class="form-item">
-        <text class="form-label">标题</text>
-        <input class="form-input" placeholder="请输入商品标题" value="{{form.title}}" data-field="title" bindinput="handleTextInput" />
+        <text class="form-label"><text class="label-required">*</text>标题</text>
+        <input class="form-input {{errors.title ? 'field-error' : ''}}" maxlength="60" placeholder="请输入商品标题" value="{{form.title}}" data-field="title" bindinput="handleTextInput" />
+        <text wx:if="{{errors.title}}" class="error-text">{{errors.title}}</text>
       </view>
 
       <view class="double-row">
         <view class="form-item half-item">
-          <text class="form-label">价格</text>
-          <input class="form-input" type="digit" placeholder="0.00" value="{{form.price}}" data-field="price" bindinput="handleTextInput" />
+          <text class="form-label"><text class="label-required">*</text>价格</text>
+          <input class="form-input {{errors.price ? 'field-error' : ''}}" type="digit" placeholder="0.00" value="{{form.price}}" data-field="price" bindinput="handleTextInput" />
+          <text wx:if="{{errors.price}}" class="error-text">{{errors.price}}</text>
         </view>
         <view class="form-item half-item">
-          <text class="form-label">数量</text>
-          <input class="form-input" type="number" placeholder="1" value="{{form.quantity}}" data-field="quantity" bindinput="handleTextInput" />
+          <text class="form-label"><text class="label-required">*</text>数量</text>
+          <input class="form-input {{errors.quantity ? 'field-error' : ''}}" type="number" maxlength="2" placeholder="1" value="{{form.quantity}}" data-field="quantity" bindinput="handleTextInput" />
+          <text wx:if="{{errors.quantity}}" class="error-text">{{errors.quantity}}</text>
         </view>
       </view>
 
       <view class="double-row">
         <view class="form-item half-item">
-          <text class="form-label">担名</text>
-          <view class="picker-field picker-trigger {{form.idolDisplayName ? '' : 'picker-placeholder'}}" data-mode="idol" bindtap="handleOpenSelector">
+          <text class="form-label"><text class="label-required">*</text>担名</text>
+          <view class="picker-field picker-trigger {{form.idolDisplayName ? '' : 'picker-placeholder'}} {{errors.idolDisplayName ? 'field-error' : ''}}" data-mode="idol" bindtap="handleOpenSelector">
             <text>{{form.idolDisplayName || '请选择担名'}}</text>
             <text class="picker-arrow">›</text>
           </view>
+          <text wx:if="{{errors.idolDisplayName}}" class="error-text">{{errors.idolDisplayName}}</text>
         </view>
         <view class="form-item half-item">
-          <text class="form-label">分类</text>
-          <view class="picker-field picker-trigger {{form.category ? '' : 'picker-placeholder'}}" data-mode="category" bindtap="handleOpenSelector">
+          <text class="form-label"><text class="label-required">*</text>分类</text>
+          <view class="picker-field picker-trigger {{form.category ? '' : 'picker-placeholder'}} {{errors.category ? 'field-error' : ''}}" data-mode="category" bindtap="handleOpenSelector">
             <text>{{form.category || '请选择分类'}}</text>
             <text class="picker-arrow">›</text>
           </view>
+          <text wx:if="{{errors.category}}" class="error-text">{{errors.category}}</text>
         </view>
       </view>
     </view>
@@ -107,12 +116,18 @@
 
       <view class="form-item">
         <text class="form-label">运费</text>
-        <input class="form-input" type="digit" placeholder="包邮填 0" value="{{form.shippingFee}}" data-field="shippingFee" bindinput="handleTextInput" />
+        <input class="form-input {{errors.shippingFee ? 'field-error' : ''}}" type="digit" placeholder="包邮填 0" value="{{form.shippingFee}}" data-field="shippingFee" bindinput="handleTextInput" />
+        <text wx:if="{{errors.shippingFee}}" class="error-text">{{errors.shippingFee}}</text>
       </view>
 
       <view class="form-item">
         <text class="form-label">描述</text>
-        <textarea class="form-textarea" placeholder="补充成色、包装、交换偏好等说明" value="{{form.note}}" data-field="note" bindinput="handleTextInput"></textarea>
+        <textarea class="form-textarea {{errors.note ? 'field-error' : ''}}" maxlength="500" placeholder="补充成色、包装、交换偏好等说明" value="{{form.note}}" data-field="note" bindinput="handleTextInput"></textarea>
+        <view class="field-foot">
+          <text class="form-hint">选填，最多 500 字</text>
+          <text class="form-count">{{form.note.length}} / 500</text>
+        </view>
+        <text wx:if="{{errors.note}}" class="error-text">{{errors.note}}</text>
       </view>
     </view>
   </view>

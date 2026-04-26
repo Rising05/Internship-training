@@ -1,4 +1,5 @@
 const DEFAULT_TIMEOUT = 8000
+const DEFAULT_SUBMIT_TIMEOUT = 20000
 const DEFAULT_UPLOAD_PATH = '/uploads/images'
 const DEFAULT_CLOUD_ENV = 'cloud1-d0gu2xnyn6f49940b'
 const DEFAULT_CLOUD_UPLOAD_PREFIX = 'xingcang/products'
@@ -56,6 +57,7 @@ module.exports = {
   activeProfile,
   availableProfiles: Object.keys(HTTP_PROFILES),
   timeout: DEFAULT_TIMEOUT,
+  submitTimeout: DEFAULT_SUBMIT_TIMEOUT,
   imageUploadPath: DEFAULT_UPLOAD_PATH,
   ...selectedProfile,
 }

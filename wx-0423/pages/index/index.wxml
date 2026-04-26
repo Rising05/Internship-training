@@ -267,6 +267,23 @@
         </view>
       </view>
 
+      <view class="feed-result-card">
+        <view class="feed-result-main">
+          <text class="feed-result-count">{{resultSummaryText}}</text>
+          <text class="feed-result-hint">{{resultSummaryHint}}</text>
+        </view>
+        <view
+          wx:if="{{hasActiveFilters}}"
+          class="feed-result-reset"
+          bindtap="handleResetFilters"
+        >
+          重置筛选
+        </view>
+      </view>
+      <view wx:if="{{hasActiveFilters}}" class="feed-result-tags">
+        <text wx:for="{{filterSummaryTags}}" wx:key="*this" class="feed-result-tag">{{item}}</text>
+      </view>
+
       <view wx:if="{{loading}}" class="page-loading">正在加载首页内容...</view>
       <block wx:elif="{{leftColumn.length + rightColumn.length}}">
         <view class="waterfall">
@@ -294,7 +311,7 @@
       <empty-state
         wx:else
         title="没有找到匹配商品"
-        description="你可以更换担位、分类或关键词后继续浏览。"
+        description="{{emptyStateDescription}}"
         action-text="恢复默认筛选"
         bind:action="handleResetFilters"
       />

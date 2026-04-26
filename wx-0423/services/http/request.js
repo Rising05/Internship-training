@@ -1,5 +1,6 @@
 const { getAuthSession } = require('../../utils/storage')
 const {
+  activeProfile,
   baseURL,
   timeout,
   imageUploadPath,
@@ -10,7 +11,7 @@ const {
 
 function buildUrl(path) {
   if (!baseURL) {
-    throw new Error('services/http/config.js baseURL is empty')
+    throw new Error(`services/http/config.js baseURL is empty for profile ${activeProfile}`)
   }
 
   const normalizedBaseURL = baseURL.endsWith('/') ? baseURL.slice(0, -1) : baseURL
@@ -129,7 +130,15 @@ function uploadFile(filePath, options = {}) {
   })
 }
 
+function isCloudTempFilePath(filePath = '') {
+  return /^https?:\/\/tmp\//.test(filePath)
+}
+
 function isRemoteFilePath(filePath = '') {
+  if (isCloudTempFilePath(filePath)) {
+    return false
+  }
+
   return /^(https?:)?\/\//.test(filePath) || /^cloud:\/\//.test(filePath)
 }
 
@@ -146,7 +155,7 @@ function buildCloudPath(filePath) {
 function uploadFileToCloud(filePath) {
   return new Promise((resolve, reject) => {
     if (!cloudEnv) {
-      reject(new Error('services/http/config.js cloudEnv is empty'))
+      reject(new Error(`services/http/config.js cloudEnv is empty for profile ${activeProfile}`))
       return
     }
 

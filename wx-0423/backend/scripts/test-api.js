@@ -1,4 +1,11 @@
 const assert = require('node:assert/strict')
+const { readDb, writeDb } = require('../src/database')
+const {
+  TEST_MESSAGE_CONTENT,
+  TEST_PRODUCT_NOTE,
+  TEST_PRODUCT_TITLE,
+  cleanupTestDataSnapshot,
+} = require('../src/test-data')
 
 const BASE_URL = process.env.BASE_URL || 'http://127.0.0.1:4000'
 
@@ -18,6 +25,10 @@ async function request(path, options = {}) {
 }
 
 async function resolveTestOpenid() {
+  if (process.env.TEST_OPENID) {
+    return process.env.TEST_OPENID
+  }
+
   try {
     const session = await request('/auth/wechat/login', {
       method: 'POST',
@@ -65,7 +76,7 @@ async function run() {
     method: 'POST',
     headers,
     body: JSON.stringify({
-      title: '接口测试商品',
+      title: TEST_PRODUCT_TITLE,
       idolType: 'group',
       idolGroup: 'IVE',
       idolMember: '张元英',
@@ -76,7 +87,7 @@ async function run() {
       tradeType: '出物',
       condition: '全新',
       shippingFee: '6',
-      note: '接口测试发布',
+      note: TEST_PRODUCT_NOTE,
       images: ['https://dummyimage.com/1080x1080/f2dce8/7d5f69.png&text=test'],
     }),
   })
@@ -94,10 +105,10 @@ async function run() {
   const sent = await request(`/conversations/${conversationId}/messages`, {
     method: 'POST',
     headers,
-    body: JSON.stringify({ content: '接口测试消息' }),
+    body: JSON.stringify({ content: TEST_MESSAGE_CONTENT }),
   })
   assert.equal(sent.success, true)
-  assert.ok(sent.thread.messages.some((item) => item.content === '接口测试消息'))
+  assert.ok(sent.thread.messages.some((item) => item.content === TEST_MESSAGE_CONTENT))
 
   const profile = await request('/profile', { headers })
   assert.ok(Array.isArray(profile.latestPublished))
@@ -114,7 +125,24 @@ async function run() {
   console.log('API checks passed')
 }
 
-run().catch((error) => {
-  console.error(error.message)
-  process.exitCode = 1
-})
+async function cleanup() {
+  const current = await readDb()
+  const result = cleanupTestDataSnapshot(current)
+  await writeDb(result.snapshot)
+}
+
+run()
+  .catch((error) => {
+    console.error(error.message)
+    process.exitCode = 1
+  })
+  .finally(async () => {
+    try {
+      await cleanup()
+    } catch (error) {
+      console.error(`Cleanup failed: ${error.message}`)
+      process.exitCode = 1
+    } finally {
+      process.exit(process.exitCode || 0)
+    }
+  })

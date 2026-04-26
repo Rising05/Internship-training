@@ -1,8 +1,61 @@
+const DEFAULT_TIMEOUT = 8000
+const DEFAULT_UPLOAD_PATH = '/uploads/images'
+const DEFAULT_CLOUD_ENV = 'cloud1-d0gu2xnyn6f49940b'
+const DEFAULT_CLOUD_UPLOAD_PREFIX = 'xingcang/products'
+
+const HTTP_PROFILES = {
+  'local-file': {
+    baseURL: 'http://127.0.0.1:4000',
+    cloudEnv: DEFAULT_CLOUD_ENV,
+    useCloudUpload: false,
+    cloudUploadPrefix: DEFAULT_CLOUD_UPLOAD_PREFIX,
+  },
+  'local-cloudbase': {
+    baseURL: 'http://127.0.0.1:4000',
+    cloudEnv: DEFAULT_CLOUD_ENV,
+    useCloudUpload: true,
+    cloudUploadPrefix: DEFAULT_CLOUD_UPLOAD_PREFIX,
+  },
+  'prod-cloudbase': {
+    baseURL: 'https://replace-before-release.example.com',
+    cloudEnv: DEFAULT_CLOUD_ENV,
+    useCloudUpload: true,
+    cloudUploadPrefix: DEFAULT_CLOUD_UPLOAD_PREFIX,
+  },
+}
+
+function detectProfileFromMiniappRuntime() {
+  try {
+    if (typeof wx !== 'undefined' && wx.getAccountInfoSync) {
+      const accountInfo = wx.getAccountInfoSync()
+      const envVersion = accountInfo
+        && accountInfo.miniProgram
+        && accountInfo.miniProgram.envVersion
+
+      if (envVersion === 'release') {
+        return 'prod-cloudbase'
+      }
+    }
+  } catch (error) {
+    // Ignore miniapp runtime detection failures and fall back to local development defaults.
+  }
+
+  return 'local-cloudbase'
+}
+
+function resolveActiveProfile() {
+  const runtimeProfile = (typeof process !== 'undefined' && process.env && process.env.MINIAPP_HTTP_PROFILE)
+    || detectProfileFromMiniappRuntime()
+  return HTTP_PROFILES[runtimeProfile] ? runtimeProfile : 'local-cloudbase'
+}
+
+const activeProfile = resolveActiveProfile()
+const selectedProfile = HTTP_PROFILES[activeProfile]
+
 module.exports = {
-  baseURL: 'http://127.0.0.1:4000',
-  timeout: 8000,
-  imageUploadPath: '/uploads/images',
-  cloudEnv: 'rising-env-d5gh45l58f397b5d8',
-  useCloudUpload: true,
-  cloudUploadPrefix: 'xingcang/products',
+  activeProfile,
+  availableProfiles: Object.keys(HTTP_PROFILES),
+  timeout: DEFAULT_TIMEOUT,
+  imageUploadPath: DEFAULT_UPLOAD_PATH,
+  ...selectedProfile,
 }

@@ -135,22 +135,22 @@ async function handleRequest(req, res) {
     }
 
     if (req.method === 'GET' && pathname === '/app/bootstrap') {
-      sendJson(res, 200, bootstrapApp(req.headers))
+      sendJson(res, 200, await bootstrapApp(req.headers))
       return
     }
 
     if (req.method === 'GET' && pathname === '/home') {
-      sendJson(res, 200, getHomeData(req.headers, query))
+      sendJson(res, 200, await getHomeData(req.headers, query))
       return
     }
 
     if (req.method === 'GET' && pathname === '/publish/meta') {
-      sendJson(res, 200, getPublishMeta(req.headers))
+      sendJson(res, 200, await getPublishMeta(req.headers))
       return
     }
 
     if (req.method === 'GET' && pathname === '/messages') {
-      sendJson(res, 200, getMessagesPage(req.headers, query.tab || 'conversation'))
+      sendJson(res, 200, await getMessagesPage(req.headers, query.tab || 'conversation'))
       return
     }
 
@@ -160,22 +160,22 @@ async function handleRequest(req, res) {
         sendError(res, 400, 'INVALID_JSON', 'Request body must be valid JSON')
         return
       }
-      sendJson(res, 200, markMessageAsRead(req.headers, body))
+      sendJson(res, 200, await markMessageAsRead(req.headers, body))
       return
     }
 
     if (req.method === 'GET' && pathname === '/profile') {
-      sendJson(res, 200, getProfilePage(req.headers))
+      sendJson(res, 200, await getProfilePage(req.headers))
       return
     }
 
     if (req.method === 'DELETE' && pathname === '/profile/recent-views') {
-      sendJson(res, 200, clearProfileRecentViews(req.headers))
+      sendJson(res, 200, await clearProfileRecentViews(req.headers))
       return
     }
 
     if (req.method === 'GET' && pathname === '/navigation/summary') {
-      sendJson(res, 200, getNavigationSummary(req.headers))
+      sendJson(res, 200, await getNavigationSummary(req.headers))
       return
     }
 
@@ -185,7 +185,7 @@ async function handleRequest(req, res) {
         sendError(res, 400, 'INVALID_JSON', 'Request body must be valid JSON')
         return
       }
-      sendJson(res, 200, submitProduct(req.headers, body))
+      sendJson(res, 200, await submitProduct(req.headers, body))
       return
     }
 
@@ -202,19 +202,19 @@ async function handleRequest(req, res) {
         sendError(res, 400, 'INVALID_UPLOAD', 'file field is required')
         return
       }
-      sendJson(res, 200, registerUpload(req.headers, file, `http://${req.headers.host}`))
+      sendJson(res, 200, await registerUpload(req.headers, file, `http://${req.headers.host}`))
       return
     }
 
     const favoriteMatch = pathname.match(/^\/favorites\/products\/([^/]+)\/toggle$/)
     if (req.method === 'POST' && favoriteMatch) {
-      sendJson(res, 200, toggleProductFavorite(req.headers, decodeURIComponent(favoriteMatch[1])))
+      sendJson(res, 200, await toggleProductFavorite(req.headers, decodeURIComponent(favoriteMatch[1])))
       return
     }
 
     const productMatch = pathname.match(/^\/products\/([^/]+)$/)
     if (req.method === 'GET' && productMatch) {
-      const payload = getProductDetail(req.headers, decodeURIComponent(productMatch[1]))
+      const payload = await getProductDetail(req.headers, decodeURIComponent(productMatch[1]))
       if (!payload) {
         sendError(res, 404, 'NOT_FOUND', 'Product not found')
         return
@@ -230,13 +230,13 @@ async function handleRequest(req, res) {
         sendError(res, 400, 'INVALID_JSON', 'Request body must be valid JSON')
         return
       }
-      sendJson(res, 200, sendChatMessage(req.headers, decodeURIComponent(conversationMessageMatch[1]), body))
+      sendJson(res, 200, await sendChatMessage(req.headers, decodeURIComponent(conversationMessageMatch[1]), body))
       return
     }
 
     const conversationMatch = pathname.match(/^\/conversations\/([^/]+)$/)
     if (req.method === 'GET' && conversationMatch) {
-      const payload = getChatDetail(req.headers, decodeURIComponent(conversationMatch[1]))
+      const payload = await getChatDetail(req.headers, decodeURIComponent(conversationMatch[1]))
       if (!payload) {
         sendError(res, 404, 'NOT_FOUND', 'Conversation not found')
         return
@@ -246,7 +246,7 @@ async function handleRequest(req, res) {
     }
 
     if (req.method === 'DELETE' && pathname === '/debug/chat-threads') {
-      sendJson(res, 200, resetThreadStore())
+      sendJson(res, 200, await resetThreadStore())
       return
     }
 

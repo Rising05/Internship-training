@@ -11,21 +11,6 @@ const IDOL_REGION_TABS = [
   { key: 'jpop', label: 'JPOP' },
   { key: 'cpop', label: '内娱' },
 ]
-const DEV_AUTO_SUBMIT_ON_IMAGE_PICK = true
-const DEV_AUTO_SUBMIT_FORM = {
-  title: '云存储联调商品',
-  idolType: 'group',
-  idolGroup: 'IVE',
-  idolMember: '张元英',
-  idolDisplayName: 'IVE · 张元英',
-  category: '小卡',
-  price: '18',
-  quantity: '1',
-  tradeType: '出物',
-  condition: '全新',
-  shippingFee: '0',
-  note: '真实云存储上传联调',
-}
 
 function getIdolOptionsByTab(directory, typeTab, regionTab) {
   if (!directory || !directory[typeTab] || !directory[typeTab][regionTab]) {
@@ -230,26 +215,9 @@ Page({
       count: remain,
       sizeType: ['compressed'],
       success: ({ tempFilePaths }) => {
-        const nextForm = DEV_AUTO_SUBMIT_ON_IMAGE_PICK
-          ? {
-            ...this.data.form,
-            ...DEV_AUTO_SUBMIT_FORM,
-          }
-          : this.data.form
-
         this.setData({
           imageList: this.data.imageList.concat(tempFilePaths),
-          form: nextForm,
         })
-
-        if (DEV_AUTO_SUBMIT_ON_IMAGE_PICK) {
-          setTimeout(() => {
-            if (!this._pageActive || this.data.submitting) {
-              return
-            }
-            this.handleSubmit().catch(() => {})
-          }, 0)
-        }
       },
     })
   },

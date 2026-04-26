@@ -9,6 +9,13 @@ const { readBackendConfig } = require('./config')
 
 const UPLOADS_DIR = path.join(__dirname, '..', 'uploads')
 const DEFAULT_PAGE_SIZE = 6
+const MAX_PAGE_SIZE = 20
+const MAX_PRODUCT_IMAGES = 9
+const MAX_PRODUCT_TITLE_LENGTH = 60
+const MAX_PRODUCT_NOTE_LENGTH = 500
+const MAX_MESSAGE_LENGTH = 500
+const VALID_MESSAGE_TABS = new Set(['conversation', 'trade', 'system'])
+const VALID_MESSAGE_READ_TYPES = new Set(['conversation', 'trade', 'system'])
 
 function ensureUploadsDir() {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true })
@@ -20,6 +27,125 @@ function createId(prefix) {
 
 function getNowIso() {
   return new Date().toISOString()
+}
+
+function parsePositiveNumber(value, field, options = {}) {
+  const {
+    allowZero = false,
+    integer = false,
+    max = Number.POSITIVE_INFINITY,
+  } = options
+  const numeric = Number(value)
+
+  if (!Number.isFinite(numeric)) {
+    throw createServiceError(400, 'INVALID_ARGUMENT', `${field} must be a valid number`, { field })
+  }
+
+  if (integer && !Number.isInteger(numeric)) {
+    throw createServiceError(400, 'INVALID_ARGUMENT', `${field} must be an integer`, { field })
+  }
+
+  if (numeric < 0 || (!allowZero && numeric <= 0)) {
+    throw createServiceError(400, 'INVALID_ARGUMENT', `${field} must be greater than ${allowZero ? 'or equal to ' : ''}0`, { field })
+  }
+
+  if (numeric > max) {
+    throw createServiceError(400, 'INVALID_ARGUMENT', `${field} exceeds the allowed maximum`, { field, max })
+  }
+
+  return numeric
+}
+
+function requireTrimmedString(value, field, options = {}) {
+  const {
+    maxLength = Number.POSITIVE_INFINITY,
+  } = options
+  const normalized = String(value || '').trim()
+
+  if (!normalized) {
+    throw createServiceError(400, 'INVALID_ARGUMENT', `${field} is required`, { field })
+  }
+
+  if (normalized.length > maxLength) {
+    throw createServiceError(400, 'INVALID_ARGUMENT', `${field} exceeds the allowed length`, {
+      field,
+      maxLength,
+    })
+  }
+
+  return normalized
+}
+
+function validateMessageTab(tab) {
+  const normalized = String(tab || 'conversation').trim()
+  if (!VALID_MESSAGE_TABS.has(normalized)) {
+    throw createServiceError(400, 'INVALID_ARGUMENT', 'tab is invalid', { field: 'tab' })
+  }
+  return normalized
+}
+
+function validateMessageReadBody(body = {}) {
+  const type = String(body.type || '').trim()
+  const id = String(body.id || '').trim()
+
+  if (!VALID_MESSAGE_READ_TYPES.has(type)) {
+    throw createServiceError(400, 'INVALID_ARGUMENT', 'type is invalid', { field: 'type' })
+  }
+
+  if (!id) {
+    throw createServiceError(400, 'INVALID_ARGUMENT', 'id is required', { field: 'id' })
+  }
+
+  return { type, id }
+}
+
+function validateConversationMessageBody(body = {}) {
+  return {
+    content: requireTrimmedString(body.content, 'content', { maxLength: MAX_MESSAGE_LENGTH }),
+  }
+}
+
+function validateProductPayload(payload = {}) {
+  const title = requireTrimmedString(payload.title, 'title', { maxLength: MAX_PRODUCT_TITLE_LENGTH })
+  const category = requireTrimmedString(payload.category, 'category')
+  const condition = requireTrimmedString(payload.condition, 'condition')
+  const tradeType = requireTrimmedString(payload.tradeType || '出物', 'tradeType')
+  const idolDisplayName = String(payload.idolDisplayName || '').trim()
+  const idolGroup = String(payload.idolGroup || '').trim()
+  const idolMember = String(payload.idolMember || '').trim()
+
+  if (!idolDisplayName && !idolGroup && !idolMember) {
+    throw createServiceError(400, 'INVALID_ARGUMENT', 'idolDisplayName or idolGroup/idolMember is required', {
+      field: 'idolDisplayName',
+    })
+  }
+
+  const images = Array.isArray(payload.images) ? payload.images.filter(Boolean) : []
+  if (!images.length) {
+    throw createServiceError(400, 'INVALID_ARGUMENT', 'images is required', { field: 'images' })
+  }
+  if (images.length > MAX_PRODUCT_IMAGES) {
+    throw createServiceError(400, 'INVALID_ARGUMENT', 'images exceeds the allowed count', {
+      field: 'images',
+      maxCount: MAX_PRODUCT_IMAGES,
+    })
+  }
+
+  return {
+    ...payload,
+    title,
+    category,
+    condition,
+    tradeType,
+    idolDisplayName,
+    idolGroup,
+    idolMember,
+    price: parsePositiveNumber(payload.price, 'price', { max: 999999 }),
+    quantity: parsePositiveNumber(payload.quantity || 1, 'quantity', { integer: true, max: 99 }),
+    shippingFee: parsePositiveNumber(payload.shippingFee || 0, 'shippingFee', { allowZero: true, max: 99999 }),
+    note: String(payload.note || '').trim().slice(0, MAX_PRODUCT_NOTE_LENGTH),
+    images: images.slice(0, MAX_PRODUCT_IMAGES),
+  }
 }
 
 function buildBannerImage(text, background, foreground) {
@@ -76,8 +202,12 @@ function getHomeBanners() {
   ]
 }
 
+function findUserByOpenid(db, openid = DEMO_OPENID) {
+  return db.users.find((item) => item.openid === openid) || null
+}
+
 function getUserByOpenid(db, openid = DEMO_OPENID) {
-  return db.users.find((item) => item.openid === openid) || db.users[0]
+  return findUserByOpenid(db, openid) || db.users[0]
 }
 
 function ensureUser(db, openid = DEMO_OPENID) {
@@ -108,6 +238,19 @@ function getFavoriteIds(db, userId) {
   return db.favorites
     .filter((item) => item.userId === userId)
     .map((item) => item.productId)
+}
+
+async function readDbWithUser(headers) {
+  const openid = getCurrentUserFromHeaders(headers)
+  const current = await readDb()
+  if (findUserByOpenid(current, openid)) {
+    return current
+  }
+
+  return withDb((snapshot) => {
+    ensureUser(snapshot, openid)
+    return snapshot
+  })
 }
 
 function getReadIds(db, userId, type) {
@@ -155,7 +298,10 @@ function buildConversationList(db, user) {
   const favoriteIds = getFavoriteIds(db, user.id)
   const readIds = getReadIds(db, user.id, 'conversation')
 
-  return db.conversations.map((conversation) => {
+  return db.conversations.slice().sort((left, right) => {
+    return new Date(right.updatedAt || right.createdAt || 0).getTime()
+      - new Date(left.updatedAt || left.createdAt || 0).getTime()
+  }).map((conversation) => {
     const lastMessage = getConversationLastMessage(db, conversation.id)
     const relatedProduct = getProductById(db, conversation.relatedProductId)
     const previewText = lastMessage
@@ -190,6 +336,8 @@ function buildGlobalSummary(db, user) {
 }
 
 function buildProfile(db, user) {
+  const favoriteCount = getFavoriteIds(db, user.id).length
+
   return {
     id: user.id,
     nickname: user.nickname,
@@ -197,7 +345,7 @@ function buildProfile(db, user) {
     location: user.location,
     publishedCount: getPublishedProducts(db, user.id).length,
     soldCount: user.soldCount,
-    favoriteCount: user.favoriteCount,
+    favoriteCount,
     dealCount: user.dealCount,
   }
 }
@@ -282,21 +430,28 @@ function createServiceError(statusCode, code, message, details) {
 
 function requestJson(url) {
   return new Promise((resolve, reject) => {
-    https
-      .get(url, (response) => {
-        const chunks = []
-        response.on('data', (chunk) => chunks.push(chunk))
-        response.on('end', () => {
-          try {
-            resolve(JSON.parse(Buffer.concat(chunks).toString('utf8')))
-          } catch (error) {
-            reject(createServiceError(502, 'WECHAT_RESPONSE_INVALID', 'WeChat login response is not valid JSON'))
-          }
-        })
+    const request = https.get(url, (response) => {
+      const chunks = []
+      response.on('data', (chunk) => chunks.push(chunk))
+      response.on('end', () => {
+        try {
+          resolve(JSON.parse(Buffer.concat(chunks).toString('utf8')))
+        } catch (error) {
+          reject(createServiceError(502, 'WECHAT_RESPONSE_INVALID', 'WeChat login response is not valid JSON'))
+        }
       })
-      .on('error', (error) => {
-        reject(createServiceError(502, 'WECHAT_REQUEST_FAILED', 'WeChat login request failed', error.message))
-      })
+    })
+
+    request.setTimeout(10000, () => {
+      request.destroy(createServiceError(504, 'WECHAT_REQUEST_TIMEOUT', 'WeChat login request timed out'))
+    })
+    request.on('error', (error) => {
+      if (error && error.code && String(error.code).startsWith('WECHAT_')) {
+        reject(error)
+        return
+      }
+      reject(createServiceError(502, 'WECHAT_REQUEST_FAILED', 'WeChat login request failed', error.message))
+    })
   })
 }
 
@@ -352,7 +507,7 @@ async function loginWithWeChat(body = {}) {
     }
 
     const session = await resolveWeChatSession(code)
-    const db = withDb((current) => {
+    const db = await withDb((current) => {
       const user = ensureUser(current, session.openid)
       user.unionId = session.unionid || user.unionId || ''
       user.updatedAt = getNowIso()
@@ -371,7 +526,7 @@ async function loginWithWeChat(body = {}) {
   const fallbackOpenid = code
     ? `demo-${crypto.createHash('md5').update(code).digest('hex').slice(0, 8)}`
     : DEMO_OPENID
-  const db = withDb((current) => {
+  const db = await withDb((current) => {
     ensureUser(current, DEMO_OPENID)
     return current
   })
@@ -385,8 +540,8 @@ async function loginWithWeChat(body = {}) {
   }
 }
 
-function bootstrapApp(headers) {
-  const db = readDb()
+async function bootstrapApp(headers) {
+  const db = await readDbWithUser(headers)
   const user = getUserByOpenid(db, getCurrentUserFromHeaders(headers))
   return {
     authSession: {
@@ -399,12 +554,15 @@ function bootstrapApp(headers) {
   }
 }
 
-function getHomeData(headers, params = {}) {
-  const db = readDb()
+async function getHomeData(headers, params = {}) {
+  const db = await readDbWithUser(headers)
   const user = getUserByOpenid(db, getCurrentUserFromHeaders(headers))
   const favoriteIds = getFavoriteIds(db, user.id)
-  const pageIndex = Number(params.pageIndex || 1)
-  const pageSize = Number(params.pageSize || DEFAULT_PAGE_SIZE)
+  const pageIndex = parsePositiveNumber(params.pageIndex || 1, 'pageIndex', { integer: true, max: 999 })
+  const pageSize = parsePositiveNumber(params.pageSize || DEFAULT_PAGE_SIZE, 'pageSize', {
+    integer: true,
+    max: MAX_PAGE_SIZE,
+  })
   const filtered = filterProducts(db, params)
   const sliced = filtered.slice(0, pageIndex * pageSize).map((item) => createProductCard(item, favoriteIds))
 
@@ -424,9 +582,9 @@ function getHomeData(headers, params = {}) {
   }
 }
 
-function getProductDetail(headers, id) {
-  const db = withDb((current) => {
-    const user = getUserByOpenid(current, getCurrentUserFromHeaders(headers))
+async function getProductDetail(headers, id) {
+  const db = await withDb((current) => {
+    const user = ensureUser(current, getCurrentUserFromHeaders(headers))
     const product = getProductById(current, id)
     if (product) {
       addRecentView(current, user, product.id)
@@ -458,9 +616,13 @@ function getProductDetail(headers, id) {
   }
 }
 
-function toggleProductFavorite(headers, id) {
-  const db = withDb((current) => {
-    const user = getUserByOpenid(current, getCurrentUserFromHeaders(headers))
+async function toggleProductFavorite(headers, id) {
+  const db = await withDb((current) => {
+    const user = ensureUser(current, getCurrentUserFromHeaders(headers))
+    const product = getProductById(current, id)
+    if (!product) {
+      throw createServiceError(404, 'NOT_FOUND', 'Product not found', { productId: id })
+    }
     const existing = current.favorites.find((item) => item.userId === user.id && item.productId === id)
     if (existing) {
       current.favorites = current.favorites.filter((item) => !(item.userId === user.id && item.productId === id))
@@ -483,8 +645,8 @@ function toggleProductFavorite(headers, id) {
   }
 }
 
-function getPublishMeta(headers) {
-  const db = readDb()
+async function getPublishMeta(headers) {
+  const db = await readDbWithUser(headers)
   const user = getUserByOpenid(db, getCurrentUserFromHeaders(headers))
   const publishCategoryOptions = db.dictionaries.categoryOptions.slice(1)
 
@@ -511,26 +673,27 @@ function getPublishMeta(headers) {
   }
 }
 
-function submitProduct(headers, payload = {}) {
-  const db = withDb((current) => {
-    const user = getUserByOpenid(current, getCurrentUserFromHeaders(headers))
-    const tradeType = payload.tradeType || '出物'
+async function submitProduct(headers, payload = {}) {
+  const validated = validateProductPayload(payload)
+  const db = await withDb((current) => {
+    const user = ensureUser(current, getCurrentUserFromHeaders(headers))
+    const tradeType = validated.tradeType || '出物'
     const nextProduct = normalizeIdolPayload({
       id: createId('ugc'),
-      title: String(payload.title || '').trim(),
-      category: payload.category,
-      price: Number(payload.price),
-      quantity: Number(payload.quantity) || 1,
-      images: Array.isArray(payload.images) ? payload.images.slice(0, 9) : [],
-      condition: payload.condition,
+      title: validated.title,
+      category: validated.category,
+      price: validated.price,
+      quantity: validated.quantity,
+      images: validated.images,
+      condition: validated.condition,
       tradeType,
-      shippingFee: Number(payload.shippingFee || 0),
-      tags: [payload.category, tradeType].filter(Boolean),
-      note: String(payload.note || '').trim(),
-      idolType: payload.idolType,
-      idolGroup: payload.idolGroup,
-      idolMember: payload.idolMember,
-      idolDisplayName: payload.idolDisplayName,
+      shippingFee: validated.shippingFee,
+      tags: [validated.category, tradeType].filter(Boolean),
+      note: validated.note,
+      idolType: validated.idolType,
+      idolGroup: validated.idolGroup,
+      idolMember: validated.idolMember,
+      idolDisplayName: validated.idolDisplayName,
       seller: {
         id: user.id,
         name: user.nickname,
@@ -566,9 +729,10 @@ function submitProduct(headers, payload = {}) {
   }
 }
 
-function getMessagesPage(headers, activeTab = 'conversation') {
-  const db = readDb()
+async function getMessagesPage(headers, activeTab = 'conversation') {
+  const db = await readDbWithUser(headers)
   const user = getUserByOpenid(db, getCurrentUserFromHeaders(headers))
+  const normalizedTab = validateMessageTab(activeTab)
   const tradeReadIds = getReadIds(db, user.id, 'trade')
   const systemReadIds = getReadIds(db, user.id, 'system')
 
@@ -588,17 +752,16 @@ function getMessagesPage(headers, activeTab = 'conversation') {
 
   return {
     tabs: db.dictionaries.messageTabs,
-    activeTab,
-    list: listMap[activeTab] || listMap.conversation,
+    activeTab: normalizedTab,
+    list: listMap[normalizedTab] || listMap.conversation,
     summary: buildGlobalSummary(db, user),
   }
 }
 
-function markMessageAsRead(headers, body = {}) {
-  const type = body.type
-  const id = body.id
-  const db = withDb((current) => {
-    const user = getUserByOpenid(current, getCurrentUserFromHeaders(headers))
+async function markMessageAsRead(headers, body = {}) {
+  const { type, id } = validateMessageReadBody(body)
+  const db = await withDb((current) => {
+    const user = ensureUser(current, getCurrentUserFromHeaders(headers))
     const exists = current.messageReads.find(
       (item) => item.userId === user.id && item.type === type && item.targetId === id
     )
@@ -620,9 +783,9 @@ function markMessageAsRead(headers, body = {}) {
   }
 }
 
-function getChatDetail(headers, conversationId) {
-  const db = withDb((current) => {
-    const user = getUserByOpenid(current, getCurrentUserFromHeaders(headers))
+async function getChatDetail(headers, conversationId) {
+  const db = await withDb((current) => {
+    const user = ensureUser(current, getCurrentUserFromHeaders(headers))
     const exists = current.messageReads.find(
       (item) => item.userId === user.id && item.type === 'conversation' && item.targetId === conversationId
     )
@@ -670,20 +833,13 @@ function getChatDetail(headers, conversationId) {
   }
 }
 
-function sendChatMessage(headers, conversationId, body = {}) {
-  const safeContent = String(body.content || '').trim()
-  if (!safeContent) {
-    return {
-      success: false,
-      thread: getChatDetail(headers, conversationId),
-      summary: buildGlobalSummary(readDb(), getUserByOpenid(readDb(), getCurrentUserFromHeaders(headers))),
-    }
-  }
+async function sendChatMessage(headers, conversationId, body = {}) {
+  const { content } = validateConversationMessageBody(body)
 
-  const db = withDb((current) => {
+  const db = await withDb((current) => {
     const conversation = current.conversations.find((item) => item.id === conversationId)
     if (!conversation) {
-      return current
+      throw createServiceError(404, 'NOT_FOUND', 'Conversation not found', { conversationId })
     }
     const order = current.messages.filter((item) => item.conversationId === conversationId).length
     current.messages.push({
@@ -691,7 +847,7 @@ function sendChatMessage(headers, conversationId, body = {}) {
       conversationId,
       type: 'text',
       from: 'self',
-      content: safeContent,
+      content,
       productId: '',
       time: '刚刚',
       order,
@@ -704,13 +860,13 @@ function sendChatMessage(headers, conversationId, body = {}) {
 
   return {
     success: true,
-    thread: getChatDetail(headers, conversationId),
+    thread: await getChatDetail(headers, conversationId),
     summary: buildGlobalSummary(db, user),
   }
 }
 
-function getProfilePage(headers) {
-  const db = readDb()
+async function getProfilePage(headers) {
+  const db = await readDbWithUser(headers)
   const user = getUserByOpenid(db, getCurrentUserFromHeaders(headers))
   const favoriteIds = getFavoriteIds(db, user.id)
   const recentViewIds = db.recentViews
@@ -738,9 +894,9 @@ function getProfilePage(headers) {
   }
 }
 
-function clearProfileRecentViews(headers) {
-  const db = withDb((current) => {
-    const user = getUserByOpenid(current, getCurrentUserFromHeaders(headers))
+async function clearProfileRecentViews(headers) {
+  const db = await withDb((current) => {
+    const user = ensureUser(current, getCurrentUserFromHeaders(headers))
     current.recentViews = current.recentViews.filter((item) => item.userId !== user.id)
     return current
   })
@@ -752,14 +908,14 @@ function clearProfileRecentViews(headers) {
   }
 }
 
-function getNavigationSummary(headers) {
-  const db = readDb()
+async function getNavigationSummary(headers) {
+  const db = await readDbWithUser(headers)
   const user = getUserByOpenid(db, getCurrentUserFromHeaders(headers))
   return buildGlobalSummary(db, user)
 }
 
-function resetThreadStore() {
-  const db = resetDb()
+async function resetThreadStore() {
+  const db = await resetDb()
   const user = getUserByOpenid(db, DEMO_OPENID)
   return {
     success: true,
@@ -776,9 +932,9 @@ function saveUploadedFile(file) {
   return basename
 }
 
-function registerUpload(headers, file, host) {
-  const db = withDb((current) => {
-    const user = getUserByOpenid(current, getCurrentUserFromHeaders(headers))
+async function registerUpload(headers, file, host) {
+  const db = await withDb((current) => {
+    const user = ensureUser(current, getCurrentUserFromHeaders(headers))
     const filename = saveUploadedFile(file)
     const url = `${host}/uploads/${filename}`
     current.uploads.unshift({

@@ -3,6 +3,17 @@
   "private": true,
   "scripts": {
     "backend:start": "node backend/server.js",
-    "backend:test": "node backend/scripts/test-api.js"
+    "backend:start:file": "BACKEND_ENV_PROFILE=local-file node backend/server.js",
+    "backend:start:cloud": "BACKEND_ENV_PROFILE=local-cloudbase node backend/server.js",
+    "backend:test": "node backend/scripts/test-api.js",
+    "backend:test:file": "BACKEND_ENV_PROFILE=local-file DATA_PROVIDER=file TEST_OPENID=demo-openid node backend/scripts/test-api.js",
+    "backend:test:cloud": "BACKEND_ENV_PROFILE=local-cloudbase DATA_PROVIDER=cloudbase TEST_OPENID=demo-openid node backend/scripts/test-api.js",
+    "backend:cloud:seed": "node backend/scripts/seed-cloudbase.js",
+    "backend:cloud:repair": "node backend/scripts/repair-cloudbase.js",
+    "backend:cloud:migrate": "node backend/scripts/migrate-cloudbase.js",
+    "backend:cleanup:test-data": "node backend/scripts/cleanup-test-data.js"
+  },
+  "dependencies": {
+    "@cloudbase/node-sdk": "^3.18.1"
   }
 }

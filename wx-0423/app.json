@@ -6,7 +6,14 @@
     "pages/messages/messages",
     "pages/profile/profile",
     "pages/detail/detail",
-    "pages/chat/chat"
+    "pages/chat/chat",
+    "pages/orders/orders",
+    "pages/wallet/wallet",
+    "pages/address/address",
+    "pages/review/review",
+    "pages/help/help",
+    "pages/policy/policy",
+    "pages/about/about"
   ],
   "window": {
     "navigationBarTextStyle": "black",

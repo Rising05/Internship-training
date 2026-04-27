@@ -1,0 +1,6 @@
+{
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "xc-navbar": "/components/xc-navbar/xc-navbar"
+  }
+}

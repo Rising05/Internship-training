@@ -1,0 +1,63 @@
+<view class="page-root">
+  <xc-navbar title="我的订单" />
+
+  <view class="page-shell">
+    <view class="status-strip">
+      <view
+        wx:for="{{statuses}}"
+        wx:key="key"
+        class="status-chip {{activeStatus === item.key ? 'status-chip-active' : ''}}"
+        data-status="{{item.key}}"
+        bindtap="handleStatusTap"
+      >
+        <text class="status-chip-label">{{item.label}}</text>
+        <text class="status-chip-count">{{item.count}}</text>
+      </view>
+    </view>
+
+    <view wx:if="{{loading}}" class="page-loading">正在加载订单...</view>
+
+    <block wx:elif="{{list.length}}">
+      <view
+        wx:for="{{list}}"
+        wx:key="id"
+        class="order-card"
+        data-id="{{item.product ? item.product.id : ''}}"
+        bindtap="handleOpenDetail"
+      >
+        <view class="order-top">
+          <text class="order-id">订单 {{item.id}}</text>
+          <text class="order-status">{{item.statusLabel}}</text>
+        </view>
+
+        <view class="order-body">
+          <image
+            wx:if="{{item.product}}"
+            class="order-cover"
+            src="{{item.product.coverImage}}"
+            mode="aspectFill"
+            data-index="{{index}}"
+            binderror="handleImageError"
+          />
+          <view class="order-main">
+            <text class="order-title">{{item.product ? item.product.title : '关联商品暂不可见'}}</text>
+            <text class="order-meta">{{item.product ? item.product.idolDisplayName : ''}}</text>
+            <text class="order-meta">{{item.seller.name}} · {{item.seller.city}}</text>
+            <text class="order-time">{{item.createdAtLabel}}</text>
+          </view>
+        </view>
+
+        <view class="order-bottom">
+          <text class="order-price">¥{{item.price}}</text>
+          <text class="order-action">{{item.actionLabel}}</text>
+        </view>
+      </view>
+    </block>
+
+    <empty-state
+      wx:else
+      title="当前状态下暂无订单"
+      description="先保留空状态和筛选结构，后续可继续接支付与履约流程。"
+    />
+  </view>
+</view>

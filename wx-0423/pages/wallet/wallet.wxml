@@ -1,0 +1,49 @@
+<view class="page-root">
+  <xc-navbar title="我的钱包" />
+
+  <view class="page-shell">
+    <view wx:if="{{loading}}" class="page-loading">正在加载钱包...</view>
+
+    <block wx:elif="{{wallet}}">
+      <view class="hero-card">
+        <text class="hero-label">可用余额</text>
+        <text class="hero-value">¥{{wallet.balance}}</text>
+        <view class="hero-grid">
+          <view class="hero-grid-item">
+            <text class="hero-grid-value">¥{{wallet.pendingSettlement}}</text>
+            <text class="hero-grid-label">待结算</text>
+          </view>
+          <view class="hero-grid-item">
+            <text class="hero-grid-value">{{wallet.couponCount}}</text>
+            <text class="hero-grid-label">优惠券</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="section-card">
+        <text class="section-title">最近账单</text>
+        <block wx:if="{{wallet.bills.length}}">
+          <view wx:for="{{wallet.bills}}" wx:key="id" class="bill-item">
+            <view>
+              <text class="bill-title">{{item.title}}</text>
+              <text class="bill-time">{{item.time}}</text>
+            </view>
+            <text class="bill-amount {{item.direction === 'income' ? 'bill-amount-income' : 'bill-amount-expense'}}">
+              {{item.direction === 'income' ? '+' : '-'}}¥{{item.amount}}
+            </text>
+          </view>
+        </block>
+        <empty-state
+          wx:else
+          title="暂无账单"
+          description="后续接入支付和退款后，这里会展示完整流水。"
+        />
+      </view>
+
+      <view class="section-card">
+        <text class="section-title">当前说明</text>
+        <view wx:for="{{wallet.tips}}" wx:key="*this" class="tip-line">{{item}}</view>
+      </view>
+    </block>
+  </view>
+</view>

@@ -1,0 +1,43 @@
+<view class="page-root">
+  <xc-navbar title="我的评价" />
+
+  <view class="page-shell">
+    <view wx:if="{{loading}}" class="page-loading">正在加载评价...</view>
+
+    <block wx:elif="{{stats}}">
+      <view class="stats-card">
+        <view class="stats-item">
+          <text class="stats-value">{{stats.averageScore}}</text>
+          <text class="stats-label">平均分</text>
+        </view>
+        <view class="stats-item">
+          <text class="stats-value">{{stats.totalCount}}</text>
+          <text class="stats-label">评价数</text>
+        </view>
+        <view class="stats-item">
+          <text class="stats-value">{{stats.positiveRate}}</text>
+          <text class="stats-label">好评率</text>
+        </view>
+      </view>
+
+      <block wx:if="{{list.length}}">
+        <view wx:for="{{list}}" wx:key="id" class="review-card">
+          <view class="review-top">
+            <text class="review-role">{{item.role}}</text>
+            <text class="review-score">{{item.score}} 分</text>
+          </view>
+          <text class="review-author">{{item.authorName}}</text>
+          <text class="review-content">{{item.content}}</text>
+          <text wx:if="{{item.product}}" class="review-product">{{item.product.title}}</text>
+          <text class="review-time">{{item.createdAtLabel}}</text>
+        </view>
+      </block>
+
+      <empty-state
+        wx:else
+        title="暂时还没有评价"
+        description="完成更多交易后，这里会逐步沉淀你的公开交易反馈。"
+      />
+    </block>
+  </view>
+</view>

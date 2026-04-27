@@ -1,0 +1,31 @@
+.page-root {
+  min-height: 100vh;
+  background: #fff7fb;
+}
+
+.page-shell {
+  padding: 24rpx;
+}
+
+.about-card {
+  margin-bottom: 20rpx;
+  padding: 28rpx;
+  border-radius: 28rpx;
+  background: #ffffff;
+  box-shadow: 0 16rpx 40rpx rgba(244, 140, 170, 0.1);
+}
+
+.about-title {
+  display: block;
+  margin-bottom: 16rpx;
+  color: #2f2330;
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.about-body {
+  display: block;
+  color: #5f4d57;
+  font-size: 26rpx;
+  line-height: 1.8;
+}

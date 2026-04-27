@@ -1,0 +1,4 @@
+<!--pages/detail/detail.wxml-->
+<view>
+商品详情id--{{good_id}}
+</view>

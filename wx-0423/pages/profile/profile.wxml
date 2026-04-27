@@ -39,7 +39,7 @@
         <text class="section-subtitle">订单、交易与售后统一入口</text>
       </view>
       <view class="shortcut-row">
-        <view wx:for="{{orderShortcuts}}" wx:key="key" class="shortcut-item">
+        <view wx:for="{{orderShortcuts}}" wx:key="key" class="shortcut-item" data-key="{{item.key}}" bindtap="handleOrderShortcutTap">
           <view class="shortcut-icon">
             <image class="shortcut-icon-image" src="{{item.iconPath}}" mode="aspectFit" />
           </view>
@@ -116,7 +116,7 @@
         <text class="section-title">帮助与设置</text>
         <text class="section-subtitle">正式版所需的隐私、帮助和反馈入口</text>
       </view>
-      <view wx:for="{{menuItems}}" wx:key="key" class="menu-item" data-title="{{item.title}}" bindtap="handleMenuTap">
+      <view wx:for="{{menuItems}}" wx:key="key" class="menu-item" data-key="{{item.key}}" bindtap="handleMenuTap">
         <view>
           <text class="menu-title">{{item.title}}</text>
           <text class="menu-desc">{{item.desc}}</text>

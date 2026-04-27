@@ -10,8 +10,13 @@ const {
   searchSuggestions,
   messageTabs,
   orderShortcuts,
+  orderStatuses,
   profileMenuItems,
   policyHighlights,
+  orderRecords,
+  walletSnapshot,
+  addressBook,
+  reviewRecords,
   products,
   conversationMessages,
   tradeNotifications,
@@ -207,6 +212,103 @@ function createProductCard(product, favorites) {
 
 function sortProductsByCreatedAt(list) {
   return list.slice().sort((prev, next) => new Date(next.createdAt).getTime() - new Date(prev.createdAt).getTime())
+}
+
+function formatDateLabel(value) {
+  if (!value) {
+    return ''
+  }
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return String(value)
+  }
+
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hour = String(date.getHours()).padStart(2, '0')
+  const minute = String(date.getMinutes()).padStart(2, '0')
+  return `${month}-${day} ${hour}:${minute}`
+}
+
+function getOrderActionLabel(status) {
+  const mapping = {
+    'pending-pay': '去付款',
+    shipping: '提醒发货',
+    receiving: '确认收货',
+    done: '再次联系',
+  }
+  return mapping[status] || '查看详情'
+}
+
+function getMockOrders() {
+  const profile = getProfile()
+  return orderRecords.map((item) => ({
+    ...item,
+    buyerUserId: item.buyerUserId || profile.id,
+    buyerName: profile.nickname,
+  }))
+}
+
+function buildOrderStatuses(list = getMockOrders()) {
+  return orderStatuses.map((item) => ({
+    ...item,
+    count: item.key === 'all'
+      ? list.length
+      : list.filter((order) => order.status === item.key).length,
+  }))
+}
+
+function buildOrderItem(order) {
+  const product = getProductById(order.productId) || getBaseProductById(order.productId)
+  const favoriteIds = getFavorites()
+  const productCard = product ? createProductCard(product, favoriteIds) : null
+  const statusMeta = orderStatuses.find((item) => item.key === order.status)
+  const profile = getProfile()
+
+  return {
+    id: order.id,
+    status: order.status,
+    statusLabel: statusMeta ? statusMeta.label : order.status,
+    price: Number(order.price) || 0,
+    createdAt: order.createdAt,
+    createdAtLabel: formatDateLabel(order.createdAt),
+    actionLabel: getOrderActionLabel(order.status),
+    seller: {
+      id: order.sellerId || '',
+      name: order.sellerName || '',
+      city: order.sellerCity || '',
+    },
+    buyer: {
+      id: order.buyerUserId || profile.id,
+      name: order.buyerName || profile.nickname,
+    },
+    product: productCard ? {
+      id: productCard.id,
+      title: productCard.title,
+      idolDisplayName: productCard.idolDisplayName || productCard.idol,
+      category: productCard.category,
+      images: productCard.images,
+    } : null,
+  }
+}
+
+function buildReviewStats(list = []) {
+  if (!list.length) {
+    return {
+      averageScore: 0,
+      totalCount: 0,
+      positiveRate: '0%',
+    }
+  }
+
+  const scoreTotal = list.reduce((result, item) => result + (Number(item.score) || 0), 0)
+  const positiveCount = list.filter((item) => Number(item.score) >= 4).length
+  return {
+    averageScore: Number((scoreTotal / list.length).toFixed(1)),
+    totalCount: list.length,
+    positiveRate: `${Math.round((positiveCount / list.length) * 100)}%`,
+  }
 }
 
 function getGlobalSummarySync() {
@@ -607,6 +709,66 @@ function sendChatMessage(conversationId, content) {
   }))
 }
 
+function getOrders(status = 'all') {
+  const orders = getMockOrders()
+  const normalizedStatus = String(status || 'all').trim() || 'all'
+  const filtered = normalizedStatus === 'all'
+    ? orders
+    : orders.filter((item) => item.status === normalizedStatus)
+
+  return simulate({
+    activeStatus: normalizedStatus,
+    statuses: buildOrderStatuses(orders),
+    list: filtered.map((item) => buildOrderItem(item)),
+  }, { delay: 60 })
+}
+
+function getOrderSummary() {
+  const orders = getMockOrders()
+  return simulate({
+    totalCount: orders.length,
+    statuses: buildOrderStatuses(orders),
+  }, { delay: 30 })
+}
+
+function getWalletData() {
+  return simulate({
+    ...walletSnapshot,
+    bills: walletSnapshot.bills.map((item) => ({ ...item })),
+    tips: walletSnapshot.tips.slice(),
+  }, { delay: 40 })
+}
+
+function getAddressList() {
+  const list = addressBook.map((item) => ({ ...item }))
+  const defaultAddress = list.find((item) => item.isDefault)
+  return simulate({
+    list,
+    defaultId: defaultAddress ? defaultAddress.id : '',
+  }, { delay: 40 })
+}
+
+function getMyReviews() {
+  const list = reviewRecords.map((item) => {
+    const product = getProductById(item.productId) || getBaseProductById(item.productId)
+    return {
+      ...item,
+      createdAtLabel: formatDateLabel(item.createdAt),
+      product: product ? {
+        id: product.id,
+        title: product.title,
+        idolDisplayName: product.idolDisplayName || product.idol,
+        category: product.category,
+      } : null,
+    }
+  })
+
+  return simulate({
+    stats: buildReviewStats(list),
+    list,
+  }, { delay: 40 })
+}
+
 function getProfilePageData() {
   const profile = getProfile()
   const favoriteIds = getFavorites()
@@ -664,6 +826,11 @@ module.exports = {
   getChatDetail,
   sendChatMessage,
   getProfilePageData,
+  getOrders,
+  getOrderSummary,
+  getWalletData,
+  getAddressList,
+  getMyReviews,
   clearProfileRecentViews,
   getNavigationSummary,
   resetThreadStore,

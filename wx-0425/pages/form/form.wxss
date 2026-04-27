@@ -1,0 +1,18 @@
+.contain{
+  display: flex;  /*给父级加弹性布局： 行布局默认， 列布局*/
+  flex-direction: column; /*列布局*/
+  height: 800rpx;
+  align-items: center; /*子孩子水平居中*/
+  padding:60rpx 0;}
+.form{
+  width: 80%;
+  height: 100%;
+  background-color: #eeeeee;}
+.page-section{
+  display: flex;
+  padding: 20rpx;
+}
+.page-title{
+  font-weight: bold;
+  padding-right:20rpx;
+}

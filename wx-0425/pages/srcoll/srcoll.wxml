@@ -1,0 +1,26 @@
+<!-- scroll-view
+scroll-y="true"  纵向  里层够高 外层固定高
+scroll-x="true" 横行   里层够宽 外层固定宽
+scroll-top 设置竖向滚动条位置
+bindscrolltoupper 滚动到顶部/左边时触发"
+bindscrolltolower 滚动到底部/右边时触发(分页判断触底)
+bindscroll  滚动触发   e.detail.scrollTop 获得滚动坐标
+ -->
+<scroll-view class="scroll" scroll-y="true"
+bindscroll="scroll"
+scroll-top="{{top}}"
+bindscrolltoupper ="upper"
+bindscrolltolower="lower"
+>
+    <view class="item">1</view>
+    <view class="item">2</view>
+    <view class="item">3</view>
+</scroll-view>
+<button type="primary" bindtap="backTop">返回到顶端</button>
+<view>==================================</view>
+<scroll-view class="scroll" scroll-x="true" style="white-space:nowrap;">
+    <view class="item scrollX">1</view>
+    <view class="item scrollX">2</view>
+    <view class="item scrollX">3</view>
+</scroll-view>
+

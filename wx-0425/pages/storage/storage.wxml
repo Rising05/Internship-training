@@ -1,0 +1,12 @@
+<!-- 
+ wx.setStorageSync() : 设置存储
+ wx.getStorageSync() : 获得存储
+ wx.removeStorageSync() : 清除某一个键的存储
+ wx.clearStorageSync():清除所有
+ -->
+ <view>
+  <button type="primary" bindtap="setS">设置存储</button>
+  <button bindtap="getS">获得存储</button>
+  <button type="primary" bindtap="removeS">清除某一个键</button>
+  <button bindtap="clearS">清除所有</button>
+ </view>

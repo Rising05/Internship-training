@@ -1,0 +1,27 @@
+<view class="page-root">
+  <xc-navbar title="地址管理" />
+
+  <view class="page-shell">
+    <view wx:if="{{loading}}" class="page-loading">正在加载地址...</view>
+
+    <block wx:elif="{{list.length}}">
+      <view wx:for="{{list}}" wx:key="id" class="address-card">
+        <view class="address-top">
+          <view class="address-top-left">
+            <text class="address-name">{{item.name}}</text>
+            <text class="address-phone">{{item.phone}}</text>
+          </view>
+          <text wx:if="{{item.id === defaultId}}" class="address-tag">{{item.tag || '默认'}}</text>
+        </view>
+        <text class="address-region">{{item.region}}</text>
+        <text class="address-detail">{{item.detail}}</text>
+      </view>
+    </block>
+
+    <empty-state
+      wx:else
+      title="暂无常用地址"
+      description="首版先补展示结构，后续可以继续接新增、编辑和删除能力。"
+    />
+  </view>
+</view>

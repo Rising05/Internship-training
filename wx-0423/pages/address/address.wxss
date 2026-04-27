@@ -1,0 +1,59 @@
+.page-root {
+  min-height: 100vh;
+  background: #fff7fb;
+}
+
+.page-shell {
+  padding: 24rpx;
+}
+
+.page-loading {
+  padding: 120rpx 0;
+  text-align: center;
+  color: #8f7f88;
+  font-size: 28rpx;
+}
+
+.address-card {
+  margin-bottom: 20rpx;
+  padding: 28rpx;
+  border-radius: 28rpx;
+  background: #ffffff;
+  box-shadow: 0 16rpx 40rpx rgba(244, 140, 170, 0.1);
+}
+
+.address-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20rpx;
+}
+
+.address-name,
+.address-phone {
+  color: #2f2330;
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+.address-phone {
+  margin-left: 14rpx;
+  font-weight: 500;
+}
+
+.address-tag {
+  padding: 8rpx 18rpx;
+  border-radius: 999rpx;
+  background: #ffe6ef;
+  color: #ff5d97;
+  font-size: 22rpx;
+}
+
+.address-region,
+.address-detail {
+  display: block;
+  margin-top: 14rpx;
+  color: #5f4d57;
+  font-size: 26rpx;
+  line-height: 1.7;
+}

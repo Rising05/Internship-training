@@ -187,6 +187,22 @@ async function run() {
   assert.equal(anonymousProfile.statusCode, 401)
   assert.equal(anonymousProfile.data.code, 'AUTH_REQUIRED')
 
+  const anonymousOrders = await requestExpectError('/orders')
+  assert.equal(anonymousOrders.statusCode, 401)
+  assert.equal(anonymousOrders.data.code, 'AUTH_REQUIRED')
+
+  const anonymousWallet = await requestExpectError('/wallet')
+  assert.equal(anonymousWallet.statusCode, 401)
+  assert.equal(anonymousWallet.data.code, 'AUTH_REQUIRED')
+
+  const anonymousAddresses = await requestExpectError('/addresses')
+  assert.equal(anonymousAddresses.statusCode, 401)
+  assert.equal(anonymousAddresses.data.code, 'AUTH_REQUIRED')
+
+  const anonymousReviews = await requestExpectError('/reviews/me')
+  assert.equal(anonymousReviews.statusCode, 401)
+  assert.equal(anonymousReviews.data.code, 'AUTH_REQUIRED')
+
   const toggle = await request(`/favorites/products/${firstProductId}/toggle`, {
     method: 'POST',
     headers,
@@ -305,6 +321,33 @@ async function run() {
 
   const profile = await request('/profile', { headers })
   assert.ok(Array.isArray(profile.latestPublished))
+
+  const orderSummary = await request('/orders/summary', { headers })
+  assert.ok(typeof orderSummary.totalCount === 'number')
+  assert.ok(Array.isArray(orderSummary.statuses))
+  assert.ok(orderSummary.statuses.some((item) => item.key === 'pending-pay'))
+
+  const pendingOrders = await request('/orders?status=pending-pay', { headers })
+  assert.equal(pendingOrders.activeStatus, 'pending-pay')
+  assert.ok(Array.isArray(pendingOrders.list))
+  assert.ok(pendingOrders.list.every((item) => item.status === 'pending-pay'))
+
+  const allOrders = await request('/orders?status=all', { headers })
+  assert.equal(allOrders.activeStatus, 'all')
+  assert.ok(allOrders.list.length >= pendingOrders.list.length)
+
+  const wallet = await request('/wallet', { headers })
+  assert.ok(typeof wallet.balance === 'number')
+  assert.ok(Array.isArray(wallet.bills))
+
+  const addresses = await request('/addresses', { headers })
+  assert.ok(Array.isArray(addresses.list))
+  assert.ok(addresses.list.some((item) => item.isDefault))
+
+  const reviews = await request('/reviews/me', { headers })
+  assert.ok(reviews.stats)
+  assert.ok(typeof reviews.stats.averageScore === 'number')
+  assert.ok(Array.isArray(reviews.list))
 
   const cleared = await request('/profile/recent-views', {
     method: 'DELETE',

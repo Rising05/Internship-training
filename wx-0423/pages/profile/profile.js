@@ -3,6 +3,22 @@ const services = require('../../services/index')
 const { getCurrentRoute, syncTabBar } = require('../../utils/tabbar')
 const { requireLogin } = require('../../utils/auth')
 
+const ORDER_TARGETS = {
+  'pending-pay': '/pages/orders/orders?status=pending-pay',
+  shipping: '/pages/orders/orders?status=shipping',
+  receiving: '/pages/orders/orders?status=receiving',
+  done: '/pages/orders/orders?status=done',
+}
+
+const MENU_TARGETS = {
+  wallet: '/pages/wallet/wallet',
+  address: '/pages/address/address',
+  review: '/pages/review/review',
+  help: '/pages/help/help',
+  policy: '/pages/policy/policy',
+  about: '/pages/about/about',
+}
+
 Page({
   data: {
     loading: true,
@@ -105,9 +121,24 @@ Page({
   },
 
   handleMenuTap(event) {
-    wx.showToast({
-      title: `${event.currentTarget.dataset.title} 已预留正式入口`,
-      icon: 'none',
+    const nextUrl = MENU_TARGETS[event.currentTarget.dataset.key]
+    if (!nextUrl) {
+      return
+    }
+
+    wx.navigateTo({
+      url: nextUrl,
+    })
+  },
+
+  handleOrderShortcutTap(event) {
+    const nextUrl = ORDER_TARGETS[event.currentTarget.dataset.key]
+    if (!nextUrl) {
+      return
+    }
+
+    wx.navigateTo({
+      url: nextUrl,
     })
   },
 

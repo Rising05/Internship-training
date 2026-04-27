@@ -153,6 +153,149 @@ const policyHighlights = [
   '当前阶段使用本地模拟数据，后续可平滑切换真实服务',
 ]
 
+const orderStatuses = [
+  { key: 'all', label: '全部' },
+  { key: 'pending-pay', label: '待付款' },
+  { key: 'shipping', label: '待发货' },
+  { key: 'receiving', label: '待收货' },
+  { key: 'done', label: '已完成' },
+]
+
+const orderRecords = [
+  {
+    id: 'ord001',
+    productId: 'xc001',
+    status: 'pending-pay',
+    price: 18,
+    sellerId: 'seller001',
+    sellerName: '星星糖',
+    sellerCity: '上海',
+    buyerUserId: 'user001',
+    buyerName: '小星星',
+    createdAt: '2026-04-25T09:30:00+08:00',
+  },
+  {
+    id: 'ord002',
+    productId: 'xc004',
+    status: 'shipping',
+    price: 24,
+    sellerId: 'seller004',
+    sellerName: '银河补给站',
+    sellerCity: '深圳',
+    buyerUserId: 'user001',
+    buyerName: '小星星',
+    createdAt: '2026-04-24T16:12:00+08:00',
+  },
+  {
+    id: 'ord003',
+    productId: 'xc003',
+    status: 'receiving',
+    price: 17.6,
+    sellerId: 'seller003',
+    sellerName: '云朵贩卖机',
+    sellerCity: '南京',
+    buyerUserId: 'user001',
+    buyerName: '小星星',
+    createdAt: '2026-04-23T18:08:00+08:00',
+  },
+  {
+    id: 'ord004',
+    productId: 'xc005',
+    status: 'done',
+    price: 62,
+    sellerId: 'seller005',
+    sellerName: '薄荷仓库',
+    sellerCity: '成都',
+    buyerUserId: 'user001',
+    buyerName: '小星星',
+    createdAt: '2026-04-21T11:20:00+08:00',
+  },
+]
+
+const walletSnapshot = {
+  balance: 128.5,
+  pendingSettlement: 36,
+  couponCount: 2,
+  bills: [
+    {
+      id: 'bill001',
+      title: '订单退款到账',
+      amount: 24,
+      direction: 'income',
+      time: '今天 10:26',
+    },
+    {
+      id: 'bill002',
+      title: '购买商品支付',
+      amount: 18,
+      direction: 'expense',
+      time: '昨天 18:40',
+    },
+    {
+      id: 'bill003',
+      title: '卖出商品结算',
+      amount: 62,
+      direction: 'income',
+      time: '04-22 14:10',
+    },
+  ],
+  tips: [
+    '钱包页首版仅提供余额和账单只读展示。',
+    '后续可接入提现、优惠券和售后退款流转。',
+  ],
+}
+
+const addressBook = [
+  {
+    id: 'addr001',
+    name: '小星星',
+    phone: '13800138000',
+    region: '上海市 浦东新区',
+    detail: '花木街道 星仓路 88 号 8 栋 1202',
+    tag: '默认',
+    isDefault: true,
+  },
+  {
+    id: 'addr002',
+    name: '小星星',
+    phone: '13900139000',
+    region: '浙江省 杭州市',
+    detail: '滨江区 星光大道 66 号 2 单元 901',
+    tag: '学校',
+    isDefault: false,
+  },
+]
+
+const reviewRecords = [
+  {
+    id: 'review001',
+    score: 5,
+    role: '买家评价',
+    authorName: '银河补给站',
+    content: '沟通顺畅，付款及时，确认收货也很快。',
+    productId: 'xc004',
+    createdAt: '2026-04-20T19:40:00+08:00',
+  },
+  {
+    id: 'review002',
+    score: 4,
+    role: '卖家评价',
+    authorName: '奶油小熊',
+    content: '补图很及时，包装仔细，整体交易体验不错。',
+    productId: 'xc002',
+    createdAt: '2026-04-18T13:15:00+08:00',
+  },
+  {
+    id: 'review003',
+    score: 5,
+    role: '买家评价',
+    authorName: '胡萝卜邮局',
+    content: '交换流程清晰，确认细节后发货很快。',
+    productId: 'xc006',
+    createdAt: '2026-04-16T21:00:00+08:00',
+  },
+]
+
 const products = [
   createProduct({
     id: 'xc001',
@@ -460,8 +603,13 @@ module.exports = {
   searchSuggestions,
   messageTabs,
   orderShortcuts,
+  orderStatuses,
   profileMenuItems,
   policyHighlights,
+  orderRecords,
+  walletSnapshot,
+  addressBook,
+  reviewRecords,
   products,
   conversationMessages,
   tradeNotifications,

@@ -1,0 +1,10 @@
+<view class="page-root">
+  <xc-navbar title="关于星仓" />
+
+  <view class="page-shell">
+    <view wx:for="{{cards}}" wx:key="title" class="about-card">
+      <text class="about-title">{{item.title}}</text>
+      <text class="about-body">{{item.body}}</text>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,14 @@
+/* pages/picker/picker.wxss */
+.contain{
+  height: 100px;
+  display:flex;
+  flex-direction: column;
+  justify-content: space-around;
+  margin:10px 0;
+  padding:0 10px;
+}
+.title{
+  background-color: #eeeeee;
+  height: 40px;
+  line-height: 40px;
+}

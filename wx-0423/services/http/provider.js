@@ -159,6 +159,39 @@ function getProfilePageData() {
   })
 }
 
+function getOrders(status = 'all') {
+  return request({
+    url: '/orders',
+    data: {
+      status,
+    },
+  })
+}
+
+function getOrderSummary() {
+  return request({
+    url: '/orders/summary',
+  })
+}
+
+function getWalletData() {
+  return request({
+    url: '/wallet',
+  })
+}
+
+function getAddressList() {
+  return request({
+    url: '/addresses',
+  })
+}
+
+function getMyReviews() {
+  return request({
+    url: '/reviews/me',
+  })
+}
+
 function clearProfileRecentViews() {
   return request({
     url: '/profile/recent-views',
@@ -196,6 +229,11 @@ module.exports = {
   getChatDetail,
   sendChatMessage,
   getProfilePageData,
+  getOrders,
+  getOrderSummary,
+  getWalletData,
+  getAddressList,
+  getMyReviews,
   clearProfileRecentViews,
   getNavigationSummary,
   resetThreadStore,

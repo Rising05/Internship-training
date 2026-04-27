@@ -190,6 +190,10 @@ function deserializeUsers(documents) {
     favoriteCount: Number(item.stats && item.stats.favoriteCount) || 0,
     dealCount: Number(item.stats && item.stats.dealCount) || 0,
     unionId: item.unionId || '',
+    orders: Array.isArray(item.orders) ? item.orders : [],
+    wallet: item.wallet || null,
+    addresses: Array.isArray(item.addresses) ? item.addresses : [],
+    reviews: Array.isArray(item.reviews) ? item.reviews : [],
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
   }))
@@ -209,6 +213,10 @@ function serializeUsers(users = []) {
       favoriteCount: Number(item.favoriteCount) || 0,
       dealCount: Number(item.dealCount) || 0,
     },
+    orders: Array.isArray(item.orders) ? item.orders : [],
+    wallet: item.wallet || null,
+    addresses: Array.isArray(item.addresses) ? item.addresses : [],
+    reviews: Array.isArray(item.reviews) ? item.reviews : [],
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
   }))

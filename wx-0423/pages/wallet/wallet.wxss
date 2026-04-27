@@ -1,0 +1,121 @@
+.page-root {
+  min-height: 100vh;
+  background: #fff7fb;
+}
+
+.page-shell {
+  padding: 24rpx;
+}
+
+.page-loading {
+  padding: 120rpx 0;
+  text-align: center;
+  color: #8f7f88;
+  font-size: 28rpx;
+}
+
+.hero-card,
+.section-card {
+  margin-bottom: 20rpx;
+  padding: 28rpx;
+  border-radius: 28rpx;
+  background: #ffffff;
+  box-shadow: 0 16rpx 40rpx rgba(244, 140, 170, 0.1);
+}
+
+.hero-card {
+  background: linear-gradient(145deg, #ff7fa5, #ff5d97);
+}
+
+.hero-label {
+  display: block;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 24rpx;
+}
+
+.hero-value {
+  display: block;
+  margin-top: 12rpx;
+  color: #ffffff;
+  font-size: 64rpx;
+  font-weight: 700;
+}
+
+.hero-grid {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 24rpx;
+}
+
+.hero-grid-item {
+  flex: 1;
+  padding: 20rpx;
+  border-radius: 22rpx;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.hero-grid-value {
+  display: block;
+  color: #ffffff;
+  font-size: 32rpx;
+  font-weight: 700;
+}
+
+.hero-grid-label {
+  display: block;
+  margin-top: 8rpx;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 22rpx;
+}
+
+.section-title {
+  display: block;
+  margin-bottom: 18rpx;
+  color: #2f2330;
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.bill-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18rpx 0;
+  border-bottom: 1rpx solid #f3e7ee;
+}
+
+.bill-item:last-child {
+  border-bottom: 0;
+}
+
+.bill-title,
+.bill-amount {
+  color: #2f2330;
+  font-size: 28rpx;
+}
+
+.bill-time {
+  display: block;
+  margin-top: 8rpx;
+  color: #8f7f88;
+  font-size: 22rpx;
+}
+
+.bill-amount {
+  font-weight: 700;
+}
+
+.bill-amount-income {
+  color: #26a269;
+}
+
+.bill-amount-expense {
+  color: #ff5d97;
+}
+
+.tip-line {
+  padding: 14rpx 0;
+  color: #5f4d57;
+  font-size: 26rpx;
+  line-height: 1.7;
+}

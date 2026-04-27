@@ -4,6 +4,7 @@ const path = require('node:path')
 const { URL } = require('node:url')
 const {
   UPLOADS_DIR,
+  getAddresses,
   bootstrapApp,
   clearProfileRecentViews,
   deleteProduct,
@@ -11,9 +12,13 @@ const {
   getHomeData,
   getMessagesPage,
   getNavigationSummary,
+  getOrders,
+  getOrderSummary,
   getProductDetail,
   getProfilePage,
   getPublishMeta,
+  getMyReviews,
+  getWallet,
   loginWithWeChat,
   markMessageAsRead,
   registerUpload,
@@ -169,6 +174,31 @@ async function handleRequest(req, res) {
 
     if (req.method === 'GET' && pathname === '/profile') {
       sendJson(res, 200, await getProfilePage(req.headers))
+      return
+    }
+
+    if (req.method === 'GET' && pathname === '/orders') {
+      sendJson(res, 200, await getOrders(req.headers, query))
+      return
+    }
+
+    if (req.method === 'GET' && pathname === '/orders/summary') {
+      sendJson(res, 200, await getOrderSummary(req.headers))
+      return
+    }
+
+    if (req.method === 'GET' && pathname === '/wallet') {
+      sendJson(res, 200, await getWallet(req.headers))
+      return
+    }
+
+    if (req.method === 'GET' && pathname === '/addresses') {
+      sendJson(res, 200, await getAddresses(req.headers))
+      return
+    }
+
+    if (req.method === 'GET' && pathname === '/reviews/me') {
+      sendJson(res, 200, await getMyReviews(req.headers))
       return
     }
 

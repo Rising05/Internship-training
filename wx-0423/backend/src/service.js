@@ -3,6 +3,13 @@ const fs = require('node:fs')
 const crypto = require('node:crypto')
 const https = require('node:https')
 const { normalizeIdolPayload } = require('../../utils/idol')
+const {
+  orderStatuses: defaultOrderStatuses,
+  orderRecords: defaultOrderRecords,
+  walletSnapshot: defaultWalletSnapshot,
+  addressBook: defaultAddressBook,
+  reviewRecords: defaultReviewRecords,
+} = require('../../utils/mock')
 const { DEMO_OPENID } = require('./seed')
 const { readDb, withDb, resetDb } = require('./database')
 const { readBackendConfig } = require('./config')
@@ -27,7 +34,12 @@ const MAX_MESSAGE_LENGTH = 500
 const VALID_MESSAGE_TABS = new Set(['conversation', 'trade', 'system'])
 const VALID_MESSAGE_READ_TYPES = new Set(['conversation', 'trade', 'system'])
 const VALID_PRODUCT_STATUSES = new Set(['active', 'reserved', 'sold', 'hidden'])
+const VALID_ORDER_STATUSES = new Set(['all', 'pending-pay', 'shipping', 'receiving', 'done'])
 const PRODUCT_CARD_PREVIEW = '发来了一张商品卡片'
+const DEFAULT_WALLET_TIPS = [
+  '钱包页首版仅提供余额和账单只读展示。',
+  '后续可接入提现、优惠券和售后退款流转。',
+]
 const PRODUCT_STATUS_META = {
   active: {
     label: '在售',
@@ -65,6 +77,48 @@ function createId(prefix) {
 
 function getNowIso() {
   return new Date().toISOString()
+}
+
+function cloneItems(items = []) {
+  return items.map((item) => ({ ...item }))
+}
+
+function createEmptyWallet() {
+  return {
+    balance: 0,
+    pendingSettlement: 0,
+    couponCount: 0,
+    bills: [],
+    tips: DEFAULT_WALLET_TIPS.slice(),
+  }
+}
+
+function isDemoUser(user) {
+  return !!(user && (user.openid === DEMO_OPENID || user.id === 'user001'))
+}
+
+function getDefaultOrders(user) {
+  return isDemoUser(user) ? cloneItems(defaultOrderRecords) : []
+}
+
+function getDefaultWallet(user) {
+  if (!isDemoUser(user)) {
+    return createEmptyWallet()
+  }
+
+  return {
+    ...defaultWalletSnapshot,
+    bills: cloneItems(defaultWalletSnapshot.bills),
+    tips: (defaultWalletSnapshot.tips || []).slice(),
+  }
+}
+
+function getDefaultAddresses(user) {
+  return isDemoUser(user) ? cloneItems(defaultAddressBook) : []
+}
+
+function getDefaultReviews(user) {
+  return isDemoUser(user) ? cloneItems(defaultReviewRecords) : []
 }
 
 function parsePositiveNumber(value, field, options = {}) {
@@ -135,6 +189,14 @@ function validateMessageReadBody(body = {}) {
   }
 
   return { type, id }
+}
+
+function validateOrderStatus(value) {
+  const normalized = String(value || 'all').trim().toLowerCase()
+  if (!VALID_ORDER_STATUSES.has(normalized)) {
+    throw createServiceError(400, 'INVALID_ARGUMENT', 'status is invalid', { field: 'status' })
+  }
+  return normalized
 }
 
 function validateConversationMessageBody(body = {}) {
@@ -337,6 +399,10 @@ function ensureUser(db, openid = DEMO_OPENID) {
     soldCount: 0,
     favoriteCount: 0,
     dealCount: 0,
+    orders: [],
+    wallet: createEmptyWallet(),
+    addresses: [],
+    reviews: [],
     createdAt: now,
     updatedAt: now,
   }
@@ -607,6 +673,138 @@ function buildProfile(db, user) {
     soldCount,
     favoriteCount,
     dealCount: user.dealCount,
+  }
+}
+
+function getUserOrders(user) {
+  if (Array.isArray(user.orders) && user.orders.length) {
+    return cloneItems(user.orders)
+  }
+  return getDefaultOrders(user)
+}
+
+function getUserWallet(user) {
+  const fallback = getDefaultWallet(user)
+  const current = user.wallet || {}
+  return {
+    ...fallback,
+    ...current,
+    bills: Array.isArray(current.bills) && current.bills.length ? cloneItems(current.bills) : fallback.bills,
+    tips: Array.isArray(current.tips) && current.tips.length ? current.tips.slice() : fallback.tips,
+  }
+}
+
+function getUserAddresses(user) {
+  if (Array.isArray(user.addresses) && user.addresses.length) {
+    return cloneItems(user.addresses)
+  }
+  return getDefaultAddresses(user)
+}
+
+function getUserReviews(user) {
+  if (Array.isArray(user.reviews) && user.reviews.length) {
+    return cloneItems(user.reviews)
+  }
+  return getDefaultReviews(user)
+}
+
+function getOrderStatuses(db) {
+  const current = db.dictionaries && Array.isArray(db.dictionaries.orderStatuses)
+    ? db.dictionaries.orderStatuses
+    : []
+  return current.length ? current : defaultOrderStatuses
+}
+
+function getOrderStatusMap(db) {
+  return getOrderStatuses(db).reduce((result, item) => {
+    result[item.key] = item.label
+    return result
+  }, {})
+}
+
+function buildOrderStatusSummary(db, orders) {
+  return getOrderStatuses(db).map((item) => ({
+    ...item,
+    count: item.key === 'all'
+      ? orders.length
+      : orders.filter((order) => order.status === item.key).length,
+  }))
+}
+
+function formatDateLabel(value) {
+  if (!value) {
+    return ''
+  }
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return String(value)
+  }
+
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hour = String(date.getHours()).padStart(2, '0')
+  const minute = String(date.getMinutes()).padStart(2, '0')
+  return `${month}-${day} ${hour}:${minute}`
+}
+
+function getOrderActionLabel(status) {
+  const mapping = {
+    'pending-pay': '去付款',
+    shipping: '提醒发货',
+    receiving: '确认收货',
+    done: '再次联系',
+  }
+  return mapping[status] || '查看详情'
+}
+
+function buildOrderItem(db, user, order, favoriteIds) {
+  const statusMap = getOrderStatusMap(db)
+  const product = getStoredProductById(db, order.productId) || getProductById(db, order.productId)
+  const productCard = product ? createProductCard(product, favoriteIds) : null
+
+  return {
+    id: order.id,
+    status: order.status,
+    statusLabel: statusMap[order.status] || order.status,
+    price: Number(order.price) || 0,
+    createdAt: order.createdAt,
+    createdAtLabel: formatDateLabel(order.createdAt),
+    actionLabel: getOrderActionLabel(order.status),
+    seller: {
+      id: order.sellerId || (product && product.seller && product.seller.id) || '',
+      name: order.sellerName || (product && product.seller && product.seller.name) || '',
+      city: order.sellerCity || (product && product.seller && product.seller.city) || '',
+    },
+    buyer: {
+      id: order.buyerUserId || user.id,
+      name: order.buyerName || user.nickname,
+    },
+    product: productCard ? {
+      id: productCard.id,
+      title: productCard.title,
+      idolDisplayName: productCard.idolDisplayName || productCard.idol,
+      category: productCard.category,
+      images: productCard.images,
+    } : null,
+  }
+}
+
+function buildReviewStats(reviews = []) {
+  if (!reviews.length) {
+    return {
+      averageScore: 0,
+      totalCount: 0,
+      positiveRate: '0%',
+    }
+  }
+
+  const scoreTotal = reviews.reduce((result, item) => result + (Number(item.score) || 0), 0)
+  const positiveCount = reviews.filter((item) => Number(item.score) >= 4).length
+  return {
+    averageScore: Number((scoreTotal / reviews.length).toFixed(1)),
+    totalCount: reviews.length,
+    positiveRate: `${Math.round((positiveCount / reviews.length) * 100)}%`,
   }
 }
 
@@ -1376,6 +1574,71 @@ async function getProfilePage(headers) {
   }
 }
 
+async function getOrderSummary(headers) {
+  const { db, user } = await requireAuthenticatedUser(headers)
+  const orders = getUserOrders(user)
+  return {
+    totalCount: orders.length,
+    statuses: buildOrderStatusSummary(db, orders),
+  }
+}
+
+async function getOrders(headers, query = {}) {
+  const { db, user } = await requireAuthenticatedUser(headers)
+  const activeStatus = validateOrderStatus(query.status)
+  const favoriteIds = getFavoriteIds(db, user.id)
+  const orders = getUserOrders(user)
+  const filtered = activeStatus === 'all'
+    ? orders
+    : orders.filter((item) => item.status === activeStatus)
+
+  return {
+    activeStatus,
+    statuses: buildOrderStatusSummary(db, orders),
+    list: filtered
+      .slice()
+      .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
+      .map((item) => buildOrderItem(db, user, item, favoriteIds)),
+  }
+}
+
+async function getWallet(headers) {
+  const { user } = await requireAuthenticatedUser(headers)
+  return getUserWallet(user)
+}
+
+async function getAddresses(headers) {
+  const { user } = await requireAuthenticatedUser(headers)
+  const list = getUserAddresses(user)
+  const defaultAddress = list.find((item) => item.isDefault)
+  return {
+    list,
+    defaultId: defaultAddress ? defaultAddress.id : '',
+  }
+}
+
+async function getMyReviews(headers) {
+  const { db, user } = await requireAuthenticatedUser(headers)
+  const list = getUserReviews(user).map((item) => {
+    const product = getStoredProductById(db, item.productId) || getProductById(db, item.productId)
+    return {
+      ...item,
+      createdAtLabel: formatDateLabel(item.createdAt),
+      product: product ? {
+        id: product.id,
+        title: product.title,
+        idolDisplayName: product.idolDisplayName || product.idol,
+        category: product.category,
+      } : null,
+    }
+  })
+
+  return {
+    stats: buildReviewStats(list),
+    list,
+  }
+}
+
 async function clearProfileRecentViews(headers) {
   const { db, user, openid } = await requireAuthenticatedUser(headers)
 
@@ -1445,6 +1708,7 @@ async function registerUpload(headers, file, host) {
 
 module.exports = {
   UPLOADS_DIR,
+  getAddresses,
   bootstrapApp,
   clearProfileRecentViews,
   deleteProduct,
@@ -1453,9 +1717,13 @@ module.exports = {
   getHomeData,
   getMessagesPage,
   getNavigationSummary,
+  getOrders,
+  getOrderSummary,
   getProductDetail,
   getProfilePage,
   getPublishMeta,
+  getMyReviews,
+  getWallet,
   loginWithWeChat,
   markMessageAsRead,
   registerUpload,

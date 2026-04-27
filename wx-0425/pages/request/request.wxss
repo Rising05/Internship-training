@@ -1,0 +1,25 @@
+/* pages/request/request.wxss */
+.lists{
+  display: flex;
+  flex-wrap: wrap;
+}
+.img{
+  width:100%
+}
+.item{
+  width:48%;
+  padding:2px;
+}
+.info{
+  display: flex;
+  flex-direction: column;
+  line-height: 30px;
+}
+.info .title{
+  /* 省略号 */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size:16px;
+}
+.info .price{color:#ff0000}

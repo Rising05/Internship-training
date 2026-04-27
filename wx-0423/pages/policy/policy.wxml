@@ -1,0 +1,10 @@
+<view class="page-root">
+  <xc-navbar title="隐私说明" />
+
+  <view class="page-shell">
+    <view wx:for="{{sections}}" wx:key="title" class="section-card">
+      <text class="section-title">{{item.title}}</text>
+      <text wx:for="{{item.lines}}" wx:key="*this" class="section-line">{{item}}</text>
+    </view>
+  </view>
+</view>

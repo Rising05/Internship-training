@@ -1,0 +1,35 @@
+<view class="contain">
+  <form catchsubmit="onsubmit" class="form">
+    <view class="page-section">
+      <view class="page-title">姓名：</view>
+      <view>
+        <input placeholder="请输入用户名称" name="username"/>
+      </view>
+    </view>
+    <view class="page-section">
+      <view class="page-title">性别：</view>
+      <radio-group name="sex">
+        <label><radio value="man"/> 男 </label>
+        <label><radio value="woman"/> 女 </label>
+      </radio-group>
+    </view>
+    <view class="page-section">
+        <view class="page-title">爱好：</view>
+        <checkbox-group name="hobby">
+          <label><checkbox value="爬山"/> 爬山 </label>
+          <label><checkbox value="看书"/> 看书 </label>
+        </checkbox-group>
+    </view>
+    <view class="page-section">
+        <view class="page-title">年龄：</view>
+        <slider value="18" name="age" show-value style="width:60%"></slider>
+    </view>
+    <view class="page-section">
+        <view class="page-title">状态</view>
+        <switch name="status"/>
+    </view>
+    <view class="btn">
+      <button type="primary" formType="submit">注册提交</button>
+    </view>
+  </form>
+</view>

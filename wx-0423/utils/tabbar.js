@@ -1,3 +1,12 @@
+function deferUiUpdate(callback) {
+  if (typeof wx !== 'undefined' && typeof wx.nextTick === 'function') {
+    wx.nextTick(callback)
+    return
+  }
+
+  setTimeout(callback, 0)
+}
+
 function getCurrentRoute() {
   const pages = getCurrentPages()
   const currentPage = pages[pages.length - 1]
@@ -17,9 +26,25 @@ function syncTabBar(route) {
   }
 
   const summary = (getApp().globalData && getApp().globalData.summary) || {}
-  tabBar.syncState({
-    route: `/${route || getCurrentRoute()}`,
-    unreadCount: summary.unreadConversationCount || 0,
+  const nextRoute = `/${route || getCurrentRoute()}`
+  const nextUnreadCount = summary.unreadCount || summary.unreadConversationCount || 0
+
+  deferUiUpdate(() => {
+    const latestPages = getCurrentPages()
+    const latestPage = latestPages[latestPages.length - 1]
+    if (!latestPage || typeof latestPage.getTabBar !== 'function') {
+      return
+    }
+
+    const latestTabBar = latestPage.getTabBar()
+    if (!latestTabBar || typeof latestTabBar.syncState !== 'function') {
+      return
+    }
+
+    latestTabBar.syncState({
+      route: nextRoute,
+      unreadCount: nextUnreadCount,
+    })
   })
 }
 

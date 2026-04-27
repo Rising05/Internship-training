@@ -6,6 +6,7 @@ const {
   UPLOADS_DIR,
   bootstrapApp,
   clearProfileRecentViews,
+  deleteProduct,
   getChatDetail,
   getHomeData,
   getMessagesPage,
@@ -19,6 +20,8 @@ const {
   resetThreadStore,
   sendChatMessage,
   submitProduct,
+  updateProduct,
+  updateProductStatus,
   toggleProductFavorite,
 } = require('./src/service')
 const { ensureDbFile } = require('./src/database')
@@ -220,6 +223,30 @@ async function handleRequest(req, res) {
         return
       }
       sendJson(res, 200, payload)
+      return
+    }
+    if (req.method === 'PATCH' && productMatch) {
+      const body = parseJsonBody(await collectBody(req))
+      if (body === null) {
+        sendError(res, 400, 'INVALID_JSON', 'Request body must be valid JSON')
+        return
+      }
+      sendJson(res, 200, await updateProduct(req.headers, decodeURIComponent(productMatch[1]), body))
+      return
+    }
+    if (req.method === 'DELETE' && productMatch) {
+      sendJson(res, 200, await deleteProduct(req.headers, decodeURIComponent(productMatch[1])))
+      return
+    }
+
+    const productStatusMatch = pathname.match(/^\/products\/([^/]+)\/status$/)
+    if (req.method === 'POST' && productStatusMatch) {
+      const body = parseJsonBody(await collectBody(req))
+      if (body === null) {
+        sendError(res, 400, 'INVALID_JSON', 'Request body must be valid JSON')
+        return
+      }
+      sendJson(res, 200, await updateProductStatus(req.headers, decodeURIComponent(productStatusMatch[1]), body))
       return
     }
 

@@ -1,6 +1,7 @@
 const { PRODUCT_IMAGE_FALLBACK, withCoverImage } = require('../../utils/media')
 const services = require('../../services/index')
 const { getCurrentRoute, syncTabBar } = require('../../utils/tabbar')
+const { requireLogin } = require('../../utils/auth')
 
 Page({
   data: {
@@ -18,12 +19,23 @@ Page({
 
   onLoad() {
     this._pageActive = true
+    this._hasLoadedData = false
     this._profileRequestToken = 0
+    if (!this.ensurePageAccess()) {
+      return
+    }
     this.loadProfilePage()
   },
 
   onShow() {
     syncTabBar(getCurrentRoute())
+    if (!this.ensurePageAccess()) {
+      return
+    }
+    if (!this._hasLoadedData) {
+      this.loadProfilePage()
+      return
+    }
     this.loadProfilePage({ silent: true })
   },
 
@@ -38,28 +50,42 @@ Page({
       this.setData({ loading: true })
     }
 
-    const data = await services.getProfilePageData()
-    if (!this._pageActive || requestToken !== this._profileRequestToken) {
-      return
+    try {
+      const data = await services.getProfilePageData()
+      if (!this._pageActive || requestToken !== this._profileRequestToken) {
+        return
+      }
+      this._hasLoadedData = true
+      this.setData({
+        loading: false,
+        profile: data.profile,
+        profileInitial: data.profileInitial,
+        stats: data.stats,
+        orderShortcuts: data.orderShortcuts,
+        menuItems: data.menuItems,
+        favoriteProducts: withCoverImage(data.favoriteProducts),
+        recentViews: withCoverImage(data.recentViews),
+        latestPublished: withCoverImage(data.latestPublished),
+        policyHighlights: data.policyHighlights,
+      })
+      getApp().syncGlobalData()
+    } catch (error) {
+      if (!this._pageActive || requestToken !== this._profileRequestToken) {
+        return
+      }
+      this.setData({ loading: false })
+      if (!error || !error.isAuthError) {
+        wx.showToast({
+          title: error && error.message ? error.message : '加载个人中心失败',
+          icon: 'none',
+        })
+      }
     }
-    this.setData({
-      loading: false,
-      profile: data.profile,
-      profileInitial: data.profileInitial,
-      stats: data.stats,
-      orderShortcuts: data.orderShortcuts,
-      menuItems: data.menuItems,
-      favoriteProducts: withCoverImage(data.favoriteProducts),
-      recentViews: withCoverImage(data.recentViews),
-      latestPublished: withCoverImage(data.latestPublished),
-      policyHighlights: data.policyHighlights,
-    })
-    getApp().syncGlobalData()
   },
 
   handleOpenDetail(event) {
     wx.navigateTo({
-      url: `/package-sub/detail/detail?id=${event.currentTarget.dataset.id}`,
+      url: `/pages/detail/detail?id=${event.currentTarget.dataset.id}`,
     })
   },
 
@@ -95,5 +121,13 @@ Page({
       return
     }
     this.loadProfilePage({ silent: true })
+  },
+
+  ensurePageAccess() {
+    return requireLogin({
+      targetType: 'tab',
+      targetUrl: '/pages/profile/profile',
+      reason: '登录后才能查看个人中心',
+    })
   },
 })

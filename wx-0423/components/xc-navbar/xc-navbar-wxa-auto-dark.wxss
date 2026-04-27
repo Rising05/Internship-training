@@ -1,0 +1,27 @@
+/* 
+此文件为开发者工具生成，生成时间: 2026/4/27上午10:15:31
+使用方法：
+在 xc-navbar.wxss 文件末尾引入样式
+```
+@import "./xc-navbar-wxa-auto-dark.wxss";
+```
+ */
+
+@media (prefers-color-scheme: dark) {
+    .xc-navbar {
+        background: rgba(26, 20, 22, 0.92);
+    }
+
+    .xc-navbar-transparent {
+        background: rgba(0, 0, 0, 0);
+    }
+
+    .xc-navbar-title {
+        color: rgb(236, 215, 230);
+    }
+
+    .xc-navbar-button {
+        background: rgba(17, 17, 17, 0.9);
+        color: rgb(221, 192, 208);
+    }
+}

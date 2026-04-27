@@ -1,0 +1,27 @@
+/* 
+此文件为开发者工具生成，生成时间: 2026/4/27上午10:15:31
+使用方法：
+在 empty-state.wxss 文件末尾引入样式
+```
+@import "./empty-state-wxa-auto-dark.wxss";
+```
+ */
+
+@media (prefers-color-scheme: dark) {
+    .empty-logo-text {
+        color: rgb(189, 13, 96);
+    }
+
+    .empty-title {
+        color: rgb(221, 197, 208);
+    }
+
+    .empty-description {
+        color: rgb(118, 101, 110);
+    }
+
+    .empty-action {
+        background: rgb(0, 0, 0);
+        color: rgb(17, 17, 17);
+    }
+}

@@ -1,6 +1,7 @@
 const services = require('../../services/index')
 const { getCurrentRoute, syncTabBar } = require('../../utils/tabbar')
 const { getMemberOptions } = require('../../utils/idol')
+const { requireLogin } = require('../../utils/auth')
 
 const DEFAULT_QUICK_ENTRY_COUNT = 4
 const IDOL_COLLAPSED_THRESHOLD = 10
@@ -231,11 +232,16 @@ Page({
 
   onLoad() {
     this._pageActive = true
+    this._hasShownOnce = false
     this._homeRequestToken = 0
     this.loadHome({ reset: true })
   },
 
   onShow() {
+    if (!this._hasShownOnce) {
+      this._hasShownOnce = true
+      return
+    }
     syncTabBar(getCurrentRoute())
     this.loadHome({ reset: false, silent: true, refreshAllLoaded: true })
   },
@@ -283,7 +289,7 @@ Page({
 
     if (!options.silent) {
       this.setData({
-        loading: options.reset,
+        loading: !!options.reset,
         loadingMore: !options.reset && !options.refreshAllLoaded,
       })
     }
@@ -645,6 +651,13 @@ Page({
   },
 
   async handleFavorite(event) {
+    if (!requireLogin({
+      targetType: 'back',
+      reason: '登录后即可同步收藏商品',
+    })) {
+      return
+    }
+
     await services.toggleProductFavorite(event.detail.id)
     getApp().syncGlobalData()
     this.loadHome({ reset: false, silent: true, refreshAllLoaded: true })
@@ -652,7 +665,7 @@ Page({
 
   handleOpenProduct(event) {
     wx.navigateTo({
-      url: `/package-sub/detail/detail?id=${event.detail.id}`,
+      url: `/pages/detail/detail?id=${event.detail.id}`,
     })
   },
 
@@ -681,6 +694,17 @@ Page({
     }
 
     if (banner.targetType === 'switchTab') {
+      if (banner.targetUrl !== '/pages/index/index') {
+        const allowAccess = requireLogin({
+          targetType: 'tab',
+          targetUrl: banner.targetUrl,
+          reason: '登录后即可继续使用该功能',
+        })
+        if (!allowAccess) {
+          return
+        }
+      }
+
       wx.switchTab({
         url: banner.targetUrl,
       })
@@ -699,6 +723,15 @@ Page({
   },
 
   handleGoPublish() {
+    const allowAccess = requireLogin({
+      targetType: 'tab',
+      targetUrl: '/pages/publish/publish',
+      reason: '登录后才能发布商品',
+    })
+    if (!allowAccess) {
+      return
+    }
+
     wx.switchTab({
       url: '/pages/publish/publish',
     })
@@ -745,6 +778,6 @@ Page({
       return
     }
 
-    this.loadHome({ pageIndex: this.data.pageIndex + 1 })
+    this.loadHome({ reset: false, pageIndex: this.data.pageIndex + 1 })
   },
 })

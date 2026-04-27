@@ -1,0 +1,44 @@
+<view class="login-page">
+  <view class="login-hero">
+    <view class="hero-glow hero-glow-left"></view>
+    <view class="hero-glow hero-glow-right"></view>
+    <view class="brand-badge">星仓</view>
+    <text class="hero-title">先逛先看，互动时再登录</text>
+    <text class="hero-copy">登录后即可发布商品、同步收藏、进入消息与聊天，当前浏览进度会为你保留。</text>
+  </view>
+
+  <view class="login-card">
+    <view class="login-section">
+      <text class="section-title">继续当前操作</text>
+      <text class="section-copy">{{reason || '登录后即可继续当前操作'}}</text>
+    </view>
+
+    <view class="benefit-list">
+      <view class="benefit-item">
+        <text class="benefit-icon">01</text>
+        <view class="benefit-copy">
+          <text class="benefit-title">同步收藏与浏览记录</text>
+          <text class="benefit-desc">你收藏的商品、最近浏览和未读消息都能跨设备延续。</text>
+        </view>
+      </view>
+      <view class="benefit-item">
+        <text class="benefit-icon">02</text>
+        <view class="benefit-copy">
+          <text class="benefit-title">发布与管理商品</text>
+          <text class="benefit-desc">登录后才能发布、上下架和维护你的商品信息。</text>
+        </view>
+      </view>
+      <view class="benefit-item">
+        <text class="benefit-icon">03</text>
+        <view class="benefit-copy">
+          <text class="benefit-title">进入聊天确认细节</text>
+          <text class="benefit-desc">可直接联系卖家确认品相、价格与发货方式。</text>
+        </view>
+      </view>
+    </view>
+
+    <button class="login-button" loading="{{submitting}}" bindtap="handleLogin">微信一键登录</button>
+    <text class="login-hint">手机号绑定能力已预留，后续版本接入，不影响本次登录。</text>
+    <text class="login-back" bindtap="handleBack">暂时先回去看看</text>
+  </view>
+</view>

@@ -1,0 +1,243 @@
+/* 
+此文件为开发者工具生成，生成时间: 2026/4/27上午10:15:31
+使用方法：
+在 index.wxss 文件末尾引入样式
+```
+@import "./index-wxa-auto-dark.wxss";
+```
+ */
+
+@media (prefers-color-scheme: dark) {
+    .hero-card {
+        background: rgb(0, 0, 0);
+    }
+
+    .hero-banner-copy {
+        background: rgba(17, 17, 17, 0.18);
+    }
+
+    .hero-banner-title {
+        color: rgb(17, 17, 17);
+    }
+
+    .hero-banner-subtitle {
+        color: rgba(17, 17, 17, 0.92);
+    }
+
+    .hero-banner-cta {
+        background: rgba(17, 17, 17, 0.92);
+        color: rgb(189, 13, 96);
+    }
+
+    .hero-fallback-bg {
+        background: rgb(0, 0, 0);
+    }
+
+    .hero-eyebrow {
+        color: rgba(17, 17, 17, 0.82);
+    }
+
+    .hero-title {
+        color: rgb(17, 17, 17);
+    }
+
+    .hero-subtitle {
+        color: rgba(17, 17, 17, 0.92);
+    }
+
+    .hero-announcement {
+        color: rgba(17, 17, 17, 0.8);
+    }
+
+    .hero-dots {
+        background: rgba(17, 17, 17, 0.18);
+    }
+
+    .hero-dot {
+        background: rgba(17, 17, 17, 0.56);
+    }
+
+    .hero-dot-active {
+        background: rgb(17, 17, 17);
+    }
+
+    .search-card {
+        background: rgba(17, 17, 17, 0.92);
+    }
+
+    .search-input-wrap {
+        background: rgb(30, 21, 25);
+    }
+
+    .search-submit {
+        background: rgb(0, 0, 0);
+        color: rgb(17, 17, 17);
+    }
+
+    .suggestions-label {
+        color: rgb(124, 105, 117);
+    }
+
+    .suggestion-chip {
+        background: rgb(27, 20, 23);
+        color: rgb(136, 116, 128);
+    }
+
+    .suggestion-chip-active {
+        background: rgb(0, 0, 0);
+        color: rgb(189, 13, 96);
+    }
+
+    .quick-icon {
+        background: rgb(31, 22, 25);
+    }
+
+    .quick-item-active .quick-icon {
+        background: rgb(0, 0, 0);
+        border-color: rgb(79, 32, 53);
+    }
+
+    .quick-label {
+        color: rgb(159, 137, 150);
+    }
+
+    .quick-item-active .quick-label {
+        color: rgb(189, 13, 96);
+    }
+
+    .section-action-pill {
+        background: rgb(0, 0, 0);
+        color: rgb(189, 13, 96);
+    }
+
+    .section-action-pill-soft {
+        background: rgb(27, 20, 23);
+        color: rgb(122, 99, 111);
+    }
+
+    .idol-type-switch {
+        background: rgb(30, 21, 25);
+    }
+
+    .idol-type-tab {
+        color: rgb(122, 105, 116);
+    }
+
+    .idol-type-tab-active {
+        background: rgb(0, 0, 0);
+        color: rgb(17, 17, 17);
+    }
+
+    .idol-region-tab {
+        background: rgb(27, 20, 23);
+        color: rgb(131, 115, 124);
+    }
+
+    .idol-region-tab-active {
+        background: rgb(0, 0, 0);
+        color: rgb(189, 13, 96);
+    }
+
+    .feed-result-card {
+        background: rgb(25, 20, 22);
+    }
+
+    .feed-result-count {
+        color: rgb(222, 201, 213);
+    }
+
+    .feed-result-hint {
+        color: rgb(124, 105, 117);
+    }
+
+    .feed-result-reset {
+        background: rgb(0, 0, 0);
+        color: rgb(189, 13, 96);
+    }
+
+    .feed-result-tag {
+        background: rgb(30, 21, 25);
+        color: rgb(131, 115, 124);
+    }
+
+    .chip-action {
+        background: rgb(0, 0, 0);
+        color: rgb(189, 13, 96);
+    }
+
+    .chip-action-active {
+        background: rgb(0, 0, 0);
+        color: rgb(17, 17, 17);
+    }
+
+    .chip-action-soft {
+        background: rgba(17, 17, 17, 0.85);
+        color: rgb(131, 115, 124);
+    }
+
+    .custom-idol-box {
+        background: rgb(26, 20, 23);
+    }
+
+    .custom-idol-input {
+        background: rgb(17, 17, 17);
+    }
+
+    .custom-idol-submit {
+        background: rgb(0, 0, 0);
+        color: rgb(17, 17, 17);
+    }
+
+    .member-mask {
+        background: rgba(241, 222, 231, 0.34);
+    }
+
+    .member-sheet {
+        background: rgb(23, 19, 21);
+    }
+
+    .member-sheet-handle {
+        background: rgb(53, 35, 44);
+    }
+
+    .member-sheet-title {
+        color: rgb(225, 203, 215);
+    }
+
+    .member-sheet-subtitle {
+        color: rgb(124, 105, 117);
+    }
+
+    .member-sheet-close {
+        background: rgb(32, 22, 26);
+        color: rgb(122, 105, 116);
+    }
+
+    .member-chip {
+        background: rgb(27, 20, 23);
+        color: rgb(139, 120, 132);
+    }
+
+    .member-chip-active {
+        background: rgb(0, 0, 0);
+        color: rgb(189, 13, 96);
+        box-shadow: rgb(0, 0, 0);
+    }
+
+    .feed-switch {
+        background: rgb(32, 22, 26);
+    }
+
+    .feed-tab {
+        color: rgb(133, 112, 124);
+    }
+
+    .feed-tab-active {
+        background: rgb(17, 17, 17);
+        color: rgb(189, 13, 96);
+    }
+
+    .load-tip {
+        color: rgb(115, 99, 109);
+    }
+}

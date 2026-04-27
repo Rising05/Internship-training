@@ -13,6 +13,7 @@
         >
           <view class="message-tab-icon">
             <image class="message-tab-icon-image" src="{{item.iconPath}}" mode="aspectFit" />
+            <view wx:if="{{item.unreadCount}}" class="message-tab-badge">{{item.unreadCount}}</view>
           </view>
           <text class="message-tab-label">{{item.label}}</text>
         </view>

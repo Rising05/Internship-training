@@ -191,6 +191,10 @@ function setAuthSession(session) {
   return writeStorage(STORAGE_KEYS.authSession, normalizeAuthSession(session))
 }
 
+function clearAuthSession() {
+  return writeStorage(STORAGE_KEYS.authSession, { ...defaultAuthSession })
+}
+
 function getMessageState() {
   return normalizeMessageState(readStorage(STORAGE_KEYS.messageState, defaultMessageState))
 }
@@ -237,9 +241,14 @@ function setChatThreads(threadMap) {
 function appendChatMessage(conversationId, message) {
   const threads = getChatThreads()
   const currentThread = isPlainObject(threads[conversationId]) ? threads[conversationId] : { messages: [] }
+  const now = new Date().toISOString()
   const nextThread = {
     ...currentThread,
-    messages: [...(currentThread.messages || []), message],
+    updatedAt: now,
+    messages: [...(currentThread.messages || []), {
+      ...message,
+      time: message.time || '刚刚',
+    }],
   }
 
   return setChatThreads({
@@ -260,6 +269,7 @@ module.exports = {
   setProfile,
   getAuthSession,
   setAuthSession,
+  clearAuthSession,
   getMessageState,
   markMessageRead,
   getPublishedProducts,

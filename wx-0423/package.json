@@ -2,7 +2,7 @@
   "name": "wx-0423",
   "private": true,
   "scripts": {
-    "backend:start": "node backend/server.js",
+    "backend:start": "BACKEND_ENV_PROFILE=local-file DATA_PROVIDER=file node backend/server.js",
     "backend:start:file": "BACKEND_ENV_PROFILE=local-file node backend/server.js",
     "backend:start:cloud": "BACKEND_ENV_PROFILE=local-cloudbase node backend/server.js",
     "backend:test": "node backend/scripts/test-api.js",

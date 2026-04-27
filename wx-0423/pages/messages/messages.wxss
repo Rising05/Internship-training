@@ -25,6 +25,7 @@
 }
 
 .message-tab-icon {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -37,6 +38,21 @@
 .message-tab-icon-image {
   width: 44rpx;
   height: 44rpx;
+}
+
+.message-tab-badge {
+  position: absolute;
+  top: -10rpx;
+  right: -14rpx;
+  min-width: 34rpx;
+  padding: 4rpx 10rpx;
+  border-radius: 999rpx;
+  background: #ff5d97;
+  color: #ffffff;
+  text-align: center;
+  font-size: 18rpx;
+  line-height: 1.2;
+  box-shadow: 0 6rpx 14rpx rgba(255, 93, 151, 0.22);
 }
 
 .message-tab-label {

@@ -1,6 +1,7 @@
 const services = require('../../services/index')
 const { getCurrentRoute, syncTabBar } = require('../../utils/tabbar')
 const { inferRegionTab, getMemberOptions } = require('../../utils/idol')
+const { requireLogin } = require('../../utils/auth')
 
 const IDOL_TYPE_TABS = [
   { key: 'group', label: '团体' },
@@ -205,12 +206,22 @@ Page({
 
   onLoad() {
     this._pageActive = true
+    this._hasLoadedData = false
     this._publishRequestToken = 0
+    if (!this.ensurePageAccess()) {
+      return
+    }
     this.loadPublishPage()
   },
 
   onShow() {
     syncTabBar(getCurrentRoute())
+    if (!this.ensurePageAccess()) {
+      return
+    }
+    if (!this._hasLoadedData && this._pageActive) {
+      this.loadPublishPage()
+    }
   },
 
   onUnload() {
@@ -220,29 +231,51 @@ Page({
 
   async loadPublishPage() {
     const requestToken = ++this._publishRequestToken
-    const data = await services.getPublishPageData()
-    if (!this._pageActive || requestToken !== this._publishRequestToken) {
-      return
+    try {
+      const data = await services.getPublishPageData()
+      if (!this._pageActive || requestToken !== this._publishRequestToken) {
+        return
+      }
+      this._hasLoadedData = true
+      this.setData({
+        loading: false,
+        tips: data.tips,
+        idolDirectory: data.idolDirectory,
+        memberDirectory: data.memberDirectory,
+        idolOptions: data.idolOptions,
+        categoryOptions: data.categoryOptions,
+        categorySections: data.categorySections,
+        conditionOptions: data.conditionOptions,
+        tradeTypeOptions: data.tradeTypeOptions,
+        errors: {},
+        hasSubmitted: false,
+        'form.idolType': '',
+        'form.idolGroup': '',
+        'form.idolMember': '',
+        'form.idolDisplayName': '',
+        'form.category': '',
+        'form.condition': data.conditionOptions[0],
+        'form.tradeType': data.tradeTypeOptions[0],
+      })
+    } catch (error) {
+      if (!this._pageActive || requestToken !== this._publishRequestToken) {
+        return
+      }
+      this.setData({ loading: false })
+      if (!error || !error.isAuthError) {
+        wx.showToast({
+          title: error && error.message ? error.message : '加载发布页失败',
+          icon: 'none',
+        })
+      }
     }
-    this.setData({
-      loading: false,
-      tips: data.tips,
-      idolDirectory: data.idolDirectory,
-      memberDirectory: data.memberDirectory,
-      idolOptions: data.idolOptions,
-      categoryOptions: data.categoryOptions,
-      categorySections: data.categorySections,
-      conditionOptions: data.conditionOptions,
-      tradeTypeOptions: data.tradeTypeOptions,
-      errors: {},
-      hasSubmitted: false,
-      'form.idolType': '',
-      'form.idolGroup': '',
-      'form.idolMember': '',
-      'form.idolDisplayName': '',
-      'form.category': '',
-      'form.condition': data.conditionOptions[0],
-      'form.tradeType': data.tradeTypeOptions[0],
+  },
+
+  ensurePageAccess() {
+    return requireLogin({
+      targetType: 'tab',
+      targetUrl: '/pages/publish/publish',
+      reason: '登录后才能发布和管理商品',
     })
   },
 

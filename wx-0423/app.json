@@ -1,18 +1,12 @@
 {
   "pages": [
     "pages/index/index",
+    "pages/auth/login",
     "pages/publish/publish",
     "pages/messages/messages",
-    "pages/profile/profile"
-  ],
-  "subpackages": [
-    {
-      "root": "package-sub",
-      "pages": [
-        "detail/detail",
-        "chat/chat"
-      ]
-    }
+    "pages/profile/profile",
+    "pages/detail/detail",
+    "pages/chat/chat"
   ],
   "window": {
     "navigationBarTextStyle": "black",

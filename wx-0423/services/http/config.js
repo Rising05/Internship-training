@@ -1,5 +1,6 @@
 const DEFAULT_TIMEOUT = 8000
 const DEFAULT_SUBMIT_TIMEOUT = 20000
+const DEFAULT_AUTH_TIMEOUT = 15000
 const DEFAULT_UPLOAD_PATH = '/uploads/images'
 const DEFAULT_CLOUD_ENV = 'cloud1-d0gu2xnyn6f49940b'
 const DEFAULT_CLOUD_UPLOAD_PREFIX = 'xingcang/products'
@@ -41,13 +42,13 @@ function detectProfileFromMiniappRuntime() {
     // Ignore miniapp runtime detection failures and fall back to local development defaults.
   }
 
-  return 'local-cloudbase'
+  return 'local-file'
 }
 
 function resolveActiveProfile() {
   const runtimeProfile = (typeof process !== 'undefined' && process.env && process.env.MINIAPP_HTTP_PROFILE)
     || detectProfileFromMiniappRuntime()
-  return HTTP_PROFILES[runtimeProfile] ? runtimeProfile : 'local-cloudbase'
+  return HTTP_PROFILES[runtimeProfile] ? runtimeProfile : 'local-file'
 }
 
 const activeProfile = resolveActiveProfile()
@@ -58,6 +59,7 @@ module.exports = {
   availableProfiles: Object.keys(HTTP_PROFILES),
   timeout: DEFAULT_TIMEOUT,
   submitTimeout: DEFAULT_SUBMIT_TIMEOUT,
+  authTimeout: DEFAULT_AUTH_TIMEOUT,
   imageUploadPath: DEFAULT_UPLOAD_PATH,
   ...selectedProfile,
 }

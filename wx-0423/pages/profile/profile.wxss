@@ -151,6 +151,29 @@
   font-weight: 700;
 }
 
+.mini-status {
+  width: fit-content;
+  padding: 6rpx 12rpx;
+  border-radius: 999rpx;
+  font-size: 20rpx;
+  font-weight: 700;
+}
+
+.mini-status-reserved {
+  background: #fff5db;
+  color: #b97b00;
+}
+
+.mini-status-sold {
+  background: #f0eff8;
+  color: #6e63a8;
+}
+
+.mini-status-hidden {
+  background: #f6edf2;
+  color: #9b8794;
+}
+
 .clear-button {
   margin-top: 20rpx;
   display: flex;

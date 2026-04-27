@@ -24,6 +24,22 @@ async function request(path, options = {}) {
   return data
 }
 
+async function requestExpectError(path, options = {}) {
+  const response = await fetch(`${BASE_URL}${path}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(options.headers || {}),
+    },
+    ...options,
+  })
+  const data = await response.json()
+  assert.equal(response.ok, false)
+  return {
+    statusCode: response.status,
+    data,
+  }
+}
+
 function buildQuery(path, params = {}) {
   const search = new URLSearchParams()
 
@@ -63,6 +79,17 @@ async function run() {
   const headers = {
     'X-Openid': await resolveTestOpenid(),
   }
+
+  const anonymousBootstrap = await request('/app/bootstrap')
+  assert.equal(anonymousBootstrap.authSession.loggedIn, false)
+  assert.equal(anonymousBootstrap.profile, null)
+  assert.equal(anonymousBootstrap.summary.favoriteCount, 0)
+  assert.equal(anonymousBootstrap.summary.unreadCount, 0)
+
+  const anonymousHome = await request('/home?pageIndex=1&pageSize=6')
+  assert.ok(Array.isArray(anonymousHome.items))
+  assert.ok(anonymousHome.items.length > 0)
+  assert.ok(anonymousHome.items.every((item) => item.isFavorite === false))
 
   const bootstrap = await request('/app/bootstrap', { headers })
   assert.ok(bootstrap.profile.nickname)
@@ -131,9 +158,34 @@ async function run() {
   assert.equal(resetHome.hasMore, firstPage.hasMore)
 
   const firstProductId = home.items[0].id
+  const anonymousDetail = await request(`/products/${firstProductId}`)
+  assert.equal(anonymousDetail.id, firstProductId)
+  assert.equal(anonymousDetail.isFavorite, false)
+  assert.equal(anonymousDetail.isOwner, false)
+
   const detail = await request(`/products/${firstProductId}`, { headers })
   assert.equal(detail.id, firstProductId)
   assert.ok(Array.isArray(detail.policies))
+  assert.ok(Array.isArray(detail.relatedProducts))
+  assert.ok(typeof detail.statusLabel === 'string')
+
+  const anonymousFavorite = await requestExpectError(`/favorites/products/${firstProductId}/toggle`, {
+    method: 'POST',
+  })
+  assert.equal(anonymousFavorite.statusCode, 401)
+  assert.equal(anonymousFavorite.data.code, 'AUTH_REQUIRED')
+
+  const anonymousPublishMeta = await requestExpectError('/publish/meta')
+  assert.equal(anonymousPublishMeta.statusCode, 401)
+  assert.equal(anonymousPublishMeta.data.code, 'AUTH_REQUIRED')
+
+  const anonymousMessages = await requestExpectError('/messages?tab=conversation')
+  assert.equal(anonymousMessages.statusCode, 401)
+  assert.equal(anonymousMessages.data.code, 'AUTH_REQUIRED')
+
+  const anonymousProfile = await requestExpectError('/profile')
+  assert.equal(anonymousProfile.statusCode, 401)
+  assert.equal(anonymousProfile.data.code, 'AUTH_REQUIRED')
 
   const toggle = await request(`/favorites/products/${firstProductId}/toggle`, {
     method: 'POST',
@@ -166,13 +218,76 @@ async function run() {
   assert.equal(created.success, true)
   assert.ok(created.product.id)
 
+  const updated = await request(`/products/${created.product.id}`, {
+    method: 'PATCH',
+    headers,
+    body: JSON.stringify({
+      title: `${TEST_PRODUCT_TITLE} 更新版`,
+      price: '18',
+      note: `${TEST_PRODUCT_NOTE} updated`,
+    }),
+  })
+  assert.equal(updated.success, true)
+  assert.equal(updated.product.title, `${TEST_PRODUCT_TITLE} 更新版`)
+  assert.equal(updated.product.price, 18)
+
+  const reserved = await request(`/products/${created.product.id}/status`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      status: 'reserved',
+    }),
+  })
+  assert.equal(reserved.success, true)
+  assert.equal(reserved.product.status, 'reserved')
+
+  const sold = await request(`/products/${created.product.id}/status`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      status: 'sold',
+    }),
+  })
+  assert.equal(sold.success, true)
+  assert.equal(sold.product.status, 'sold')
+
   const messages = await request('/messages?tab=conversation', { headers })
   assert.ok(Array.isArray(messages.list))
   assert.ok(messages.list.length > 0)
+  assert.ok(typeof messages.summary.unreadCount === 'number')
+  assert.equal(
+    messages.summary.unreadCount,
+    messages.summary.unreadDetail.conversation + messages.summary.unreadDetail.trade + messages.summary.unreadDetail.system
+  )
 
-  const conversationId = messages.list[0].id
-  const thread = await request(`/conversations/${conversationId}`, { headers })
-  assert.equal(thread.id, conversationId)
+  const firstConversation = messages.list.find((item) => item.unread > 0) || messages.list[0]
+  const unreadBeforeRead = firstConversation.unread
+  const conversationBefore = await request(`/conversations/${firstConversation.id}`, { headers })
+  assert.equal(conversationBefore.id, firstConversation.id)
+  assert.ok(Array.isArray(conversationBefore.messages))
+  assert.ok(typeof conversationBefore.summary.unreadCount === 'number')
+
+  const latestMessage = conversationBefore.messages[conversationBefore.messages.length - 1]
+  if (latestMessage) {
+    assert.equal(firstConversation.content, latestMessage.type === 'product' ? '发来了一张商品卡片' : latestMessage.content)
+    assert.equal(firstConversation.time, latestMessage.time || '刚刚')
+  }
+
+  const messagesAfterRead = await request('/messages?tab=conversation', { headers })
+  const readConversation = messagesAfterRead.list.find((item) => item.id === firstConversation.id)
+  assert.ok(readConversation)
+  assert.equal(readConversation.unread, 0)
+
+  const summaryAfterRead = await request('/navigation/summary', { headers })
+  assert.equal(
+    summaryAfterRead.unreadCount,
+    summaryAfterRead.unreadDetail.conversation + summaryAfterRead.unreadDetail.trade + summaryAfterRead.unreadDetail.system
+  )
+  if (unreadBeforeRead > 0) {
+    assert.ok(summaryAfterRead.unreadDetail.conversation <= messages.summary.unreadDetail.conversation - unreadBeforeRead)
+  }
+
+  const conversationId = firstConversation.id
 
   const sent = await request(`/conversations/${conversationId}/messages`, {
     method: 'POST',
@@ -181,6 +296,12 @@ async function run() {
   })
   assert.equal(sent.success, true)
   assert.ok(sent.thread.messages.some((item) => item.content === TEST_MESSAGE_CONTENT))
+  assert.ok(typeof sent.summary.unreadCount === 'number')
+
+  const messagesAfterSend = await request('/messages?tab=conversation', { headers })
+  assert.equal(messagesAfterSend.list[0].id, conversationId)
+  assert.equal(messagesAfterSend.list[0].content, TEST_MESSAGE_CONTENT)
+  assert.equal(messagesAfterSend.list[0].time, '刚刚')
 
   const profile = await request('/profile', { headers })
   assert.ok(Array.isArray(profile.latestPublished))
@@ -191,8 +312,16 @@ async function run() {
   })
   assert.equal(cleared.success, true)
 
+  const deleted = await request(`/products/${created.product.id}`, {
+    method: 'DELETE',
+    headers,
+  })
+  assert.equal(deleted.success, true)
+
   const summary = await request('/navigation/summary', { headers })
   assert.ok(typeof summary.unreadConversationCount === 'number')
+  assert.ok(typeof summary.unreadCount === 'number')
+  assert.deepEqual(Object.keys(summary.unreadDetail).sort(), ['conversation', 'system', 'trade'])
 
   console.log('API checks passed')
 }

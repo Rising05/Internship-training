@@ -1,4 +1,5 @@
 const { getAuthSession } = require('../../utils/storage')
+const { clearAuthState, requireLogin } = require('../../utils/auth')
 const {
   activeProfile,
   baseURL,
@@ -42,10 +43,21 @@ function buildHeaders(extraHeaders = {}) {
   return headers
 }
 
-function buildRequestError(message, responseData) {
-  const error = new Error(message)
+function buildRequestError(message, responseData, metadata = {}) {
+  const context = [metadata.method, metadata.url].filter(Boolean).join(' ')
+  const error = new Error(context ? `${context} ${message}` : message)
   error.responseData = responseData
+  error.request = metadata
+  error.isAuthError = !!(responseData && responseData.code === 'AUTH_REQUIRED')
   return error
+}
+
+function handleAuthRequired(responseData) {
+  clearAuthState()
+  requireLogin({
+    targetType: 'back',
+    reason: (responseData && responseData.message) || '登录状态已失效，请重新登录',
+  })
 }
 
 function extractErrorMessage(error, fallback = 'Request failed') {
@@ -73,8 +85,9 @@ function request(options) {
   } = options
 
   return new Promise((resolve, reject) => {
+    const requestUrl = buildUrl(url)
     wx.request({
-      url: buildUrl(url),
+      url: requestUrl,
       method,
       data,
       timeout: requestTimeout,
@@ -86,15 +99,21 @@ function request(options) {
           return
         }
 
+        if (statusCode === 401 && responseData && responseData.code === 'AUTH_REQUIRED') {
+          handleAuthRequired(responseData)
+        }
+
         reject(buildRequestError(
           (responseData && responseData.message) || `Request failed with status ${statusCode}`,
-          responseData
+          responseData,
+          { method, url: requestUrl }
         ))
       },
       fail(error) {
         reject(buildRequestError(
           extractErrorMessage(error, 'Request failed'),
-          error && error.responseData
+          error && error.responseData,
+          { method, url: requestUrl }
         ))
       },
     })
@@ -110,8 +129,9 @@ function uploadFile(filePath, options = {}) {
   } = options
 
   return new Promise((resolve, reject) => {
+    const requestUrl = buildUrl(url)
     wx.uploadFile({
-      url: buildUrl(url),
+      url: requestUrl,
       filePath,
       name,
       formData,
@@ -137,15 +157,21 @@ function uploadFile(filePath, options = {}) {
           return
         }
 
+        if (response.statusCode === 401 && responseData && responseData.code === 'AUTH_REQUIRED') {
+          handleAuthRequired(responseData)
+        }
+
         reject(buildRequestError(
           (responseData && responseData.message) || `Upload failed with status ${response.statusCode}`,
-          responseData
+          responseData,
+          { method: 'UPLOAD', url: requestUrl }
         ))
       },
       fail(error) {
         reject(buildRequestError(
           extractErrorMessage(error, 'Upload failed'),
-          error && error.responseData
+          error && error.responseData,
+          { method: 'UPLOAD', url: requestUrl }
         ))
       },
     })
@@ -198,7 +224,8 @@ function uploadFileToCloud(filePath) {
       fail(error) {
         reject(buildRequestError(
           extractErrorMessage(error, 'Cloud upload failed'),
-          error
+          error,
+          { method: 'CLOUD_UPLOAD', url: cloudEnv }
         ))
       },
     })

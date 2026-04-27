@@ -102,3 +102,5 @@ navigator {
   text-align: center;
   color: var(--xc-subtle);
 }
+
+@import "./app-wxa-auto-dark.wxss";

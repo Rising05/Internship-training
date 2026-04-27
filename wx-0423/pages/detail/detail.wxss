@@ -287,12 +287,12 @@
   line-height: 1;
 }
 
-.ghost {
+.bottom-button.ghost {
   background: #fff2f7;
   color: #ff5d97;
 }
 
-.primary {
+.bottom-button.primary {
   background: linear-gradient(135deg, #ff84af, #ff5d97);
   color: #ffffff;
 }

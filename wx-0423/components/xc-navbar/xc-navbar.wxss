@@ -51,3 +51,5 @@
   font-size: 24rpx;
   line-height: 64rpx;
 }
+
+@import "./xc-navbar-wxa-auto-dark.wxss";

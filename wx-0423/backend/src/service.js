@@ -6,6 +6,16 @@ const { normalizeIdolPayload } = require('../../utils/idol')
 const { DEMO_OPENID } = require('./seed')
 const { readDb, withDb, resetDb } = require('./database')
 const { readBackendConfig } = require('./config')
+const {
+  clearCloudRecentViews,
+  removeCloudFavorite,
+  removeCloudProduct,
+  upsertCloudFavorite,
+  upsertCloudMessageRead,
+  upsertCloudProduct,
+  upsertCloudRecentView,
+  upsertCloudUser,
+} = require('./cloudbase-store')
 
 const UPLOADS_DIR = path.join(__dirname, '..', 'uploads')
 const DEFAULT_PAGE_SIZE = 6
@@ -16,6 +26,34 @@ const MAX_PRODUCT_NOTE_LENGTH = 500
 const MAX_MESSAGE_LENGTH = 500
 const VALID_MESSAGE_TABS = new Set(['conversation', 'trade', 'system'])
 const VALID_MESSAGE_READ_TYPES = new Set(['conversation', 'trade', 'system'])
+const VALID_PRODUCT_STATUSES = new Set(['active', 'reserved', 'sold', 'hidden'])
+const PRODUCT_CARD_PREVIEW = '发来了一张商品卡片'
+const PRODUCT_STATUS_META = {
+  active: {
+    label: '在售',
+    tone: 'active',
+    description: '商品正在展示中，可继续沟通与成交。',
+    canPurchase: true,
+  },
+  reserved: {
+    label: '已预留',
+    tone: 'reserved',
+    description: '商品已被预留，仍可进入聊天查看进度。',
+    canPurchase: false,
+  },
+  sold: {
+    label: '已售出',
+    tone: 'sold',
+    description: '商品已完成成交，仅保留记录与会话。',
+    canPurchase: false,
+  },
+  hidden: {
+    label: '已下架',
+    tone: 'hidden',
+    description: '商品已从首页隐藏，仅发布者可查看。',
+    canPurchase: false,
+  },
+}
 
 function ensureUploadsDir() {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true })
@@ -105,6 +143,74 @@ function validateConversationMessageBody(body = {}) {
   }
 }
 
+function validateProductStatus(value) {
+  const normalized = String(value || '').trim().toLowerCase()
+  if (!VALID_PRODUCT_STATUSES.has(normalized)) {
+    throw createServiceError(400, 'INVALID_ARGUMENT', 'status is invalid', { field: 'status' })
+  }
+  return normalized
+}
+
+function validateProductUpdatePayload(payload = {}) {
+  const nextPayload = {}
+
+  if (payload.title !== undefined) {
+    nextPayload.title = requireTrimmedString(payload.title, 'title', { maxLength: MAX_PRODUCT_TITLE_LENGTH })
+  }
+  if (payload.category !== undefined) {
+    nextPayload.category = requireTrimmedString(payload.category, 'category')
+  }
+  if (payload.condition !== undefined) {
+    nextPayload.condition = requireTrimmedString(payload.condition, 'condition')
+  }
+  if (payload.tradeType !== undefined) {
+    nextPayload.tradeType = requireTrimmedString(payload.tradeType, 'tradeType')
+  }
+  if (payload.price !== undefined) {
+    nextPayload.price = parsePositiveNumber(payload.price, 'price', { max: 999999 })
+  }
+  if (payload.quantity !== undefined) {
+    nextPayload.quantity = parsePositiveNumber(payload.quantity, 'quantity', { integer: true, max: 99 })
+  }
+  if (payload.shippingFee !== undefined) {
+    nextPayload.shippingFee = parsePositiveNumber(payload.shippingFee, 'shippingFee', { allowZero: true, max: 99999 })
+  }
+  if (payload.note !== undefined) {
+    nextPayload.note = String(payload.note || '').trim().slice(0, MAX_PRODUCT_NOTE_LENGTH)
+  }
+  if (payload.images !== undefined) {
+    const images = Array.isArray(payload.images) ? payload.images.filter(Boolean) : []
+    if (!images.length) {
+      throw createServiceError(400, 'INVALID_ARGUMENT', 'images is required', { field: 'images' })
+    }
+    if (images.length > MAX_PRODUCT_IMAGES) {
+      throw createServiceError(400, 'INVALID_ARGUMENT', 'images exceeds the allowed count', {
+        field: 'images',
+        maxCount: MAX_PRODUCT_IMAGES,
+      })
+    }
+    nextPayload.images = images.slice(0, MAX_PRODUCT_IMAGES)
+  }
+  if (payload.idolType !== undefined) {
+    nextPayload.idolType = String(payload.idolType || '').trim()
+  }
+  if (payload.idolGroup !== undefined) {
+    nextPayload.idolGroup = String(payload.idolGroup || '').trim()
+  }
+  if (payload.idolMember !== undefined) {
+    nextPayload.idolMember = String(payload.idolMember || '').trim()
+  }
+  if (payload.idolDisplayName !== undefined) {
+    nextPayload.idolDisplayName = String(payload.idolDisplayName || '').trim()
+  }
+
+  if (!Object.keys(nextPayload).length) {
+    throw createServiceError(400, 'INVALID_ARGUMENT', 'No editable product fields were provided')
+  }
+
+  return nextPayload
+}
+
 function validateProductPayload(payload = {}) {
   const title = requireTrimmedString(payload.title, 'title', { maxLength: MAX_PRODUCT_TITLE_LENGTH })
   const category = requireTrimmedString(payload.category, 'category')
@@ -175,7 +281,7 @@ function getHomeBanners() {
       subtitle: '后续可直接接运营活动与限时专区',
       image: buildBannerImage('活动专区', 'efe6ff', '635a83'),
       targetType: 'navigate',
-      targetUrl: '/package-sub/detail/detail?id=xc001',
+      targetUrl: '/pages/detail/detail?id=xc001',
       ctaText: '查看专题',
       enabled: true,
       sort: 20,
@@ -202,16 +308,20 @@ function getHomeBanners() {
   ]
 }
 
-function findUserByOpenid(db, openid = DEMO_OPENID) {
-  return db.users.find((item) => item.openid === openid) || null
+function findUserByOpenid(db, openid = '') {
+  const normalizedOpenid = typeof openid === 'string' ? openid.trim() : ''
+  if (!normalizedOpenid) {
+    return null
+  }
+  return db.users.find((item) => item.openid === normalizedOpenid) || null
 }
 
-function getUserByOpenid(db, openid = DEMO_OPENID) {
-  return findUserByOpenid(db, openid) || db.users[0]
+function getUserByOpenid(db, openid = '') {
+  return findUserByOpenid(db, openid)
 }
 
 function ensureUser(db, openid = DEMO_OPENID) {
-  const existing = getUserByOpenid(db, openid)
+  const existing = findUserByOpenid(db, openid)
   if (existing) {
     return existing
   }
@@ -240,17 +350,80 @@ function getFavoriteIds(db, userId) {
     .map((item) => item.productId)
 }
 
-async function readDbWithUser(headers) {
-  const openid = getCurrentUserFromHeaders(headers)
-  const current = await readDb()
-  if (findUserByOpenid(current, openid)) {
-    return current
+function getAnonymousSummary() {
+  return {
+    favoriteCount: 0,
+    recentCount: 0,
+    unreadCount: 0,
+    unreadConversationCount: 0,
+    unreadDetail: {
+      conversation: 0,
+      trade: 0,
+      system: 0,
+    },
+    publishedCount: 0,
+  }
+}
+
+async function createUserRecord(db, openid) {
+  if (!openid) {
+    return {
+      db,
+      user: null,
+    }
   }
 
-  return withDb((snapshot) => {
+  const config = readBackendConfig()
+  if (config.dataProvider === 'cloudbase') {
+    const user = ensureUser(db, openid)
+    await upsertCloudUser(user)
+    return {
+      db,
+      user,
+    }
+  }
+
+  const nextDb = await withDb((snapshot) => {
     ensureUser(snapshot, openid)
     return snapshot
   })
+
+  return {
+    db: nextDb,
+    user: getUserByOpenid(nextDb, openid),
+  }
+}
+
+async function readDbWithOptionalUser(headers, options = {}) {
+  const { createIfMissing = false } = options
+  const openid = getCurrentUserFromHeaders(headers)
+  let db = await readDb()
+  let user = getUserByOpenid(db, openid)
+
+  if (!user && openid && createIfMissing) {
+    const created = await createUserRecord(db, openid)
+    db = created.db
+    user = created.user
+  }
+
+  return {
+    db,
+    user,
+    openid,
+  }
+}
+
+async function requireAuthenticatedUser(headers, options = {}) {
+  const context = await readDbWithOptionalUser(headers, {
+    createIfMissing: true,
+    ...options,
+  })
+
+  if (!context.openid || !context.user) {
+    throw createServiceError(401, 'AUTH_REQUIRED', 'Login required')
+  }
+
+  return context
 }
 
 function getReadIds(db, userId, type) {
@@ -263,14 +436,26 @@ function getActiveProducts(db) {
   return db.products.filter((item) => item.status !== 'hidden')
 }
 
+function getStoredProductById(db, id) {
+  return db.products.find((item) => item.id === id) || null
+}
+
 function getProductById(db, id) {
   return getActiveProducts(db).find((item) => item.id === id) || null
 }
 
+function getProductStatusMeta(status) {
+  return PRODUCT_STATUS_META[status] || PRODUCT_STATUS_META.active
+}
+
 function createProductCard(product, favoriteIds) {
+  const statusMeta = getProductStatusMeta(product.status)
   return {
     ...product,
     isFavorite: favoriteIds.includes(product.id),
+    statusLabel: statusMeta.label,
+    statusTone: statusMeta.tone,
+    canPurchase: statusMeta.canPurchase,
     seller: {
       avatarText: '星',
       ...(product.seller || {}),
@@ -282,7 +467,7 @@ function sortProductsByCreatedAt(list) {
   return list.slice().sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
 }
 
-function getConversationLastMessage(db, conversationId) {
+function getConversationMessages(db, conversationId) {
   return db.messages
     .filter((item) => item.conversationId === conversationId)
     .sort((left, right) => {
@@ -291,28 +476,60 @@ function getConversationLastMessage(db, conversationId) {
       }
       return new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime()
     })
-    .slice(-1)[0] || null
+}
+
+function getConversationLastMessage(db, conversationId) {
+  return getConversationMessages(db, conversationId).slice(-1)[0] || null
+}
+
+function getMessagePreviewText(message, fallback = '') {
+  if (!message) {
+    return fallback
+  }
+
+  return message.type === 'product' ? PRODUCT_CARD_PREVIEW : (message.content || fallback)
+}
+
+function sumUnreadCount(list = []) {
+  return list.reduce((result, item) => result + (Number(item.unread) || 0), 0)
+}
+
+function buildNotificationList(items = [], readIds = []) {
+  return items.map((item) => ({
+    ...item,
+    avatarText: item.type.slice(0, 1),
+    unread: readIds.includes(item.id) ? 0 : item.unread,
+  }))
 }
 
 function buildConversationList(db, user) {
+  if (!user) {
+    return []
+  }
+
   const favoriteIds = getFavoriteIds(db, user.id)
   const readIds = getReadIds(db, user.id, 'conversation')
 
   return db.conversations.slice().sort((left, right) => {
-    return new Date(right.updatedAt || right.createdAt || 0).getTime()
-      - new Date(left.updatedAt || left.createdAt || 0).getTime()
+    const rightLastMessage = getConversationLastMessage(db, right.id)
+    const leftLastMessage = getConversationLastMessage(db, left.id)
+    const rightActiveAt = new Date(
+      (rightLastMessage && rightLastMessage.createdAt) || right.updatedAt || right.createdAt || 0
+    ).getTime()
+    const leftActiveAt = new Date(
+      (leftLastMessage && leftLastMessage.createdAt) || left.updatedAt || left.createdAt || 0
+    ).getTime()
+
+    return rightActiveAt - leftActiveAt
   }).map((conversation) => {
     const lastMessage = getConversationLastMessage(db, conversation.id)
     const relatedProduct = getProductById(db, conversation.relatedProductId)
-    const previewText = lastMessage
-      ? (lastMessage.type === 'product' ? '发来了一张商品卡片' : lastMessage.content)
-      : conversation.seedPreview
 
     return {
       id: conversation.id,
       name: conversation.user.name,
       initial: conversation.user.avatarText || conversation.user.name.slice(0, 1),
-      content: previewText,
+      content: getMessagePreviewText(lastMessage, conversation.seedPreview),
       time: lastMessage ? (lastMessage.time || '刚刚') : conversation.seedTime,
       unread: readIds.includes(conversation.id) ? 0 : conversation.seedUnread,
       relatedProductId: conversation.relatedProductId,
@@ -323,20 +540,63 @@ function buildConversationList(db, user) {
 }
 
 function buildGlobalSummary(db, user) {
+  if (!user) {
+    return getAnonymousSummary()
+  }
+
   const favoriteIds = getFavoriteIds(db, user.id)
   const recentViews = db.recentViews.filter((item) => item.userId === user.id)
-  const unreadConversationCount = buildConversationList(db, user).filter((item) => item.unread).length
+  const conversationList = buildConversationList(db, user)
+  const tradeList = buildNotificationList(db.tradeNotifications, getReadIds(db, user.id, 'trade'))
+  const systemList = buildNotificationList(db.systemNotifications, getReadIds(db, user.id, 'system'))
+  const unreadConversationCount = sumUnreadCount(conversationList)
+  const unreadTradeCount = sumUnreadCount(tradeList)
+  const unreadSystemCount = sumUnreadCount(systemList)
 
   return {
     favoriteCount: favoriteIds.length,
     recentCount: recentViews.length,
+    unreadCount: unreadConversationCount + unreadTradeCount + unreadSystemCount,
     unreadConversationCount,
+    unreadDetail: {
+      conversation: unreadConversationCount,
+      trade: unreadTradeCount,
+      system: unreadSystemCount,
+    },
     publishedCount: getPublishedProducts(db, user.id).length,
+  }
+}
+
+function buildChatThread(db, user, conversationId) {
+  const conversation = db.conversations.find((item) => item.id === conversationId)
+  if (!conversation) {
+    return null
+  }
+
+  const favoriteIds = getFavoriteIds(db, user.id)
+  const relatedProduct = getProductById(db, conversation.relatedProductId)
+  const messages = getConversationMessages(db, conversationId).map((item) => ({
+    id: item.id,
+    type: item.type,
+    from: item.from,
+    content: item.content,
+    time: item.time || '刚刚',
+    product: item.productId ? createProductCard(getProductById(db, item.productId), favoriteIds) : null,
+  }))
+
+  return {
+    id: conversation.id,
+    title: conversation.user.name,
+    subtitle: conversation.user.subtitle,
+    user: conversation.user,
+    relatedProduct: relatedProduct ? createProductCard(relatedProduct, favoriteIds) : null,
+    messages,
   }
 }
 
 function buildProfile(db, user) {
   const favoriteCount = getFavoriteIds(db, user.id).length
+  const soldCount = db.products.filter((item) => item.ownerUserId === user.id && item.status === 'sold').length
 
   return {
     id: user.id,
@@ -344,7 +604,7 @@ function buildProfile(db, user) {
     bio: user.bio,
     location: user.location,
     publishedCount: getPublishedProducts(db, user.id).length,
-    soldCount: user.soldCount,
+    soldCount,
     favoriteCount,
     dealCount: user.dealCount,
   }
@@ -366,6 +626,20 @@ function addRecentView(db, user, productId) {
     viewedAt: getNowIso(),
   })
   db.recentViews = db.recentViews.slice(0, 8)
+}
+
+function buildRelatedProducts(db, user, product, favoriteIds) {
+  return sortProductsByCreatedAt(getActiveProducts(db))
+    .filter((item) => item.id !== product.id)
+    .filter((item) => item.category === product.category || item.idolDisplayName === product.idolDisplayName)
+    .slice(0, 4)
+    .map((item) => createProductCard(item, favoriteIds))
+}
+
+function ensureProductOwner(product, user) {
+  if (!product || product.ownerUserId !== user.id) {
+    throw createServiceError(403, 'FORBIDDEN', 'Only the product owner can manage this product')
+  }
 }
 
 function normalizeQueryValue(value) {
@@ -420,8 +694,9 @@ function filterProducts(db, params) {
   })
 }
 
-function getCurrentUserFromHeaders(headers) {
-  return headers['x-openid'] || headers['X-Openid'] || DEMO_OPENID
+function getCurrentUserFromHeaders(headers = {}) {
+  const openid = headers['x-openid'] || headers['X-Openid'] || ''
+  return typeof openid === 'string' ? openid.trim() : ''
 }
 
 function createServiceError(statusCode, code, message, details) {
@@ -471,6 +746,28 @@ function shouldUseRealWeChatLogin(config, code) {
   return Boolean(config.wechat.appId && config.wechat.appSecret && code && code !== 'dev-code')
 }
 
+function shouldFallbackToStubSession(config) {
+  return config.envProfile === 'local-file' || config.dataProvider === 'file'
+}
+
+async function buildStubLoginSession(code) {
+  const fallbackOpenid = code
+    ? `demo-${crypto.createHash('md5').update(code).digest('hex').slice(0, 8)}`
+    : DEMO_OPENID
+  const db = await withDb((current) => {
+    ensureUser(current, DEMO_OPENID)
+    return current
+  })
+  const user = getUserByOpenid(db, DEMO_OPENID)
+
+  return {
+    loggedIn: true,
+    openid: user.openid || fallbackOpenid,
+    nickname: user.nickname,
+    sessionSource: 'stub',
+  }
+}
+
 async function resolveWeChatSession(code) {
   const config = readBackendConfig()
   if (!config.wechat.appId || !config.wechat.appSecret) {
@@ -510,13 +807,37 @@ async function loginWithWeChat(body = {}) {
       throw createServiceError(400, 'WECHAT_CODE_REQUIRED', 'wx.login code is required')
     }
 
-    const session = await resolveWeChatSession(code)
-    const db = await withDb((current) => {
-      const user = ensureUser(current, session.openid)
+    let session
+    try {
+      session = await resolveWeChatSession(code)
+    } catch (error) {
+      if (!shouldFallbackToStubSession(config)) {
+        throw error
+      }
+
+      return buildStubLoginSession(code)
+    }
+
+    let db
+
+    if (config.dataProvider === 'cloudbase') {
+      db = await readDb()
+      let user = findUserByOpenid(db, session.openid)
+      if (!user) {
+        user = ensureUser(db, session.openid)
+      }
       user.unionId = session.unionid || user.unionId || ''
       user.updatedAt = getNowIso()
-      return current
-    })
+      await upsertCloudUser(user)
+    } else {
+      db = await withDb((current) => {
+        const user = ensureUser(current, session.openid)
+        user.unionId = session.unionid || user.unionId || ''
+        user.updatedAt = getNowIso()
+        return current
+      })
+    }
+
     const user = getUserByOpenid(db, session.openid)
 
     return {
@@ -527,26 +848,23 @@ async function loginWithWeChat(body = {}) {
     }
   }
 
-  const fallbackOpenid = code
-    ? `demo-${crypto.createHash('md5').update(code).digest('hex').slice(0, 8)}`
-    : DEMO_OPENID
-  const db = await withDb((current) => {
-    ensureUser(current, DEMO_OPENID)
-    return current
-  })
-  const user = getUserByOpenid(db, DEMO_OPENID)
-
-  return {
-    loggedIn: true,
-    openid: user.openid || fallbackOpenid,
-    nickname: user.nickname,
-    sessionSource: 'stub',
-  }
+  return buildStubLoginSession(code)
 }
 
 async function bootstrapApp(headers) {
-  const db = await readDbWithUser(headers)
-  const user = getUserByOpenid(db, getCurrentUserFromHeaders(headers))
+  const { db, user } = await readDbWithOptionalUser(headers, { createIfMissing: true })
+  if (!user) {
+    return {
+      authSession: {
+        loggedIn: false,
+        nickname: '',
+        openid: '',
+      },
+      profile: null,
+      summary: getAnonymousSummary(),
+    }
+  }
+
   return {
     authSession: {
       loggedIn: true,
@@ -559,9 +877,8 @@ async function bootstrapApp(headers) {
 }
 
 async function getHomeData(headers, params = {}) {
-  const db = await readDbWithUser(headers)
-  const user = getUserByOpenid(db, getCurrentUserFromHeaders(headers))
-  const favoriteIds = getFavoriteIds(db, user.id)
+  const { db, user } = await readDbWithOptionalUser(headers, { createIfMissing: true })
+  const favoriteIds = user ? getFavoriteIds(db, user.id) : []
   const pageIndex = parsePositiveNumber(params.pageIndex || 1, 'pageIndex', { integer: true, max: 999 })
   const pageSize = parsePositiveNumber(params.pageSize || DEFAULT_PAGE_SIZE, 'pageSize', {
     integer: true,
@@ -589,59 +906,100 @@ async function getHomeData(headers, params = {}) {
 }
 
 async function getProductDetail(headers, id) {
-  const db = await withDb((current) => {
-    const user = ensureUser(current, getCurrentUserFromHeaders(headers))
-    const product = getProductById(current, id)
-    if (product) {
-      addRecentView(current, user, product.id)
-    }
-    return current
-  })
-  const user = getUserByOpenid(db, getCurrentUserFromHeaders(headers))
-  const product = getProductById(db, id)
+  const config = readBackendConfig()
+  const { db, user, openid } = await readDbWithOptionalUser(headers, { createIfMissing: true })
+  const ownedProduct = user ? getStoredProductById(db, id) : null
+  const product = ownedProduct && user && ownedProduct.ownerUserId === user.id
+    ? ownedProduct
+    : getProductById(db, id)
   if (!product) {
     return null
+  }
+
+  if (user && config.dataProvider === 'cloudbase') {
+    const nextRecentView = {
+      userId: user.id,
+      productId: product.id,
+      viewedAt: getNowIso(),
+    }
+    await upsertCloudRecentView(nextRecentView)
+    addRecentView(db, user, product.id)
+  } else if (user) {
+    const nextDb = await withDb((current) => {
+      const currentUser = ensureUser(current, openid)
+      const currentProduct = getStoredProductById(current, id)
+      if (currentProduct) {
+        addRecentView(current, currentUser, currentProduct.id)
+      }
+      return current
+    })
+    db.recentViews = nextDb.recentViews
   }
 
   const publishedCount = product.ownerUserId
     ? getPublishedProducts(db, product.ownerUserId).length
     : 12
+  const favoriteIds = user ? getFavoriteIds(db, user.id) : []
+  const statusMeta = getProductStatusMeta(product.status)
 
   return {
-    ...createProductCard(product, getFavoriteIds(db, user.id)),
+    ...createProductCard(product, favoriteIds),
     seller: {
       ...product.seller,
       publishedCount,
       responseRate: '95%',
     },
+    isOwner: !!(user && product.ownerUserId === user.id),
+    statusDescription: statusMeta.description,
+    relatedProducts: buildRelatedProducts(db, user, product, favoriteIds),
     policies: [
       '支持私聊沟通细节与补图',
-      '正式购买流程将在后端接入后开放',
+      '支持商品状态管理、上下架与已售标记',
       '请在确认品相与价格后再发起交易',
     ],
   }
 }
 
 async function toggleProductFavorite(headers, id) {
-  const db = await withDb((current) => {
-    const user = ensureUser(current, getCurrentUserFromHeaders(headers))
-    const product = getProductById(current, id)
-    if (!product) {
-      throw createServiceError(404, 'NOT_FOUND', 'Product not found', { productId: id })
-    }
-    const existing = current.favorites.find((item) => item.userId === user.id && item.productId === id)
+  const config = readBackendConfig()
+  const { db, user, openid } = await requireAuthenticatedUser(headers)
+  const product = getProductById(db, id)
+  if (!product) {
+    throw createServiceError(404, 'NOT_FOUND', 'Product not found', { productId: id })
+  }
+  const existing = db.favorites.find((item) => item.userId === user.id && item.productId === id)
+
+  if (config.dataProvider === 'cloudbase') {
     if (existing) {
-      current.favorites = current.favorites.filter((item) => !(item.userId === user.id && item.productId === id))
+      await removeCloudFavorite(user.id, id)
+      db.favorites = db.favorites.filter((item) => !(item.userId === user.id && item.productId === id))
     } else {
-      current.favorites.unshift({
+      const nextFavorite = {
         userId: user.id,
         productId: id,
         createdAt: getNowIso(),
-      })
+      }
+      await upsertCloudFavorite(nextFavorite)
+      db.favorites.unshift(nextFavorite)
     }
-    return current
-  })
-  const user = getUserByOpenid(db, getCurrentUserFromHeaders(headers))
+  } else {
+    const nextDb = await withDb((current) => {
+      const currentUser = ensureUser(current, openid)
+      const currentExisting = current.favorites.find((item) => item.userId === currentUser.id && item.productId === id)
+      if (currentExisting) {
+        current.favorites = current.favorites.filter((item) => !(item.userId === currentUser.id && item.productId === id))
+      } else {
+        current.favorites.unshift({
+          userId: currentUser.id,
+          productId: id,
+          createdAt: getNowIso(),
+        })
+      }
+      return current
+    })
+    db.favorites = nextDb.favorites
+  }
+
   const favoriteIds = getFavoriteIds(db, user.id)
 
   return {
@@ -652,8 +1010,7 @@ async function toggleProductFavorite(headers, id) {
 }
 
 async function getPublishMeta(headers) {
-  const db = await readDbWithUser(headers)
-  const user = getUserByOpenid(db, getCurrentUserFromHeaders(headers))
+  const { db, user } = await requireAuthenticatedUser(headers)
   const publishCategoryOptions = db.dictionaries.categoryOptions.slice(1)
 
   return {
@@ -681,52 +1038,51 @@ async function getPublishMeta(headers) {
 
 async function submitProduct(headers, payload = {}) {
   const validated = validateProductPayload(payload)
-  const db = await withDb((current) => {
-    const user = ensureUser(current, getCurrentUserFromHeaders(headers))
-    const tradeType = validated.tradeType || '出物'
-    const nextProduct = normalizeIdolPayload({
-      id: createId('ugc'),
-      title: validated.title,
-      category: validated.category,
-      price: validated.price,
-      quantity: validated.quantity,
-      images: validated.images,
-      condition: validated.condition,
-      tradeType,
-      shippingFee: validated.shippingFee,
-      tags: [validated.category, tradeType].filter(Boolean),
-      note: validated.note,
-      idolType: validated.idolType,
-      idolGroup: validated.idolGroup,
-      idolMember: validated.idolMember,
-      idolDisplayName: validated.idolDisplayName,
-      seller: {
-        id: user.id,
-        name: user.nickname,
-        city: user.location,
-        level: '新发布',
-        intro: user.bio,
-        avatarText: user.nickname.slice(0, 1),
-      },
-      ownerUserId: user.id,
-      status: 'active',
-      isHot: false,
-      isLatest: true,
-      conversationId: 'conv001',
-      createdAt: getNowIso(),
-      updatedAt: getNowIso(),
-    })
-
-    current.products.unshift(nextProduct)
-    const targetUser = current.users.find((item) => item.id === user.id)
-    if (targetUser) {
-      targetUser.publishedCount = getPublishedProducts(current, user.id).length
-      targetUser.updatedAt = getNowIso()
-    }
-
-    return current
+  const { db, user, openid } = await requireAuthenticatedUser(headers)
+  const tradeType = validated.tradeType || '出物'
+  const nextProduct = normalizeIdolPayload({
+    id: createId('ugc'),
+    title: validated.title,
+    category: validated.category,
+    price: validated.price,
+    quantity: validated.quantity,
+    images: validated.images,
+    condition: validated.condition,
+    tradeType,
+    shippingFee: validated.shippingFee,
+    tags: [validated.category, tradeType].filter(Boolean),
+    note: validated.note,
+    idolType: validated.idolType,
+    idolGroup: validated.idolGroup,
+    idolMember: validated.idolMember,
+    idolDisplayName: validated.idolDisplayName,
+    seller: {
+      id: user.id,
+      name: user.nickname,
+      city: user.location,
+      level: '新发布',
+      intro: user.bio,
+      avatarText: user.nickname.slice(0, 1),
+    },
+    ownerUserId: user.id,
+    status: 'active',
+    isHot: false,
+    isLatest: true,
+    conversationId: 'conv001',
+    createdAt: getNowIso(),
+    updatedAt: getNowIso(),
   })
-  const user = getUserByOpenid(db, getCurrentUserFromHeaders(headers))
+
+  if (readBackendConfig().dataProvider === 'cloudbase') {
+    await upsertCloudProduct(nextProduct)
+    db.products.unshift(nextProduct)
+  } else {
+    const nextDb = await withDb((current) => {
+      current.products.unshift(nextProduct)
+      return current
+    })
+    db.products = nextDb.products
+  }
 
   return {
     success: true,
@@ -735,25 +1091,121 @@ async function submitProduct(headers, payload = {}) {
   }
 }
 
+async function updateProduct(headers, id, payload = {}) {
+  const updates = validateProductUpdatePayload(payload)
+  const { db, user } = await requireAuthenticatedUser(headers)
+  const product = getStoredProductById(db, id)
+  if (!product) {
+    throw createServiceError(404, 'NOT_FOUND', 'Product not found', { productId: id })
+  }
+  ensureProductOwner(product, user)
+
+  const nextProduct = normalizeIdolPayload({
+    ...product,
+    ...updates,
+    updatedAt: getNowIso(),
+  })
+
+  if (readBackendConfig().dataProvider === 'cloudbase') {
+    await upsertCloudProduct(nextProduct)
+    const productIndex = db.products.findIndex((item) => item.id === id)
+    if (productIndex >= 0) {
+      db.products.splice(productIndex, 1, nextProduct)
+    }
+  } else {
+    const nextDb = await withDb((current) => {
+      const currentProduct = getStoredProductById(current, id)
+      Object.assign(currentProduct, nextProduct)
+      return current
+    })
+    db.products = nextDb.products
+  }
+
+  return {
+    success: true,
+    product: createProductCard(nextProduct, getFavoriteIds(db, user.id)),
+    summary: buildGlobalSummary(db, user),
+  }
+}
+
+async function updateProductStatus(headers, id, body = {}) {
+  const status = validateProductStatus(body.status)
+  const { db, user } = await requireAuthenticatedUser(headers)
+  const product = getStoredProductById(db, id)
+  if (!product) {
+    throw createServiceError(404, 'NOT_FOUND', 'Product not found', { productId: id })
+  }
+  ensureProductOwner(product, user)
+
+  const nextProduct = {
+    ...product,
+    status,
+    updatedAt: getNowIso(),
+  }
+
+  if (readBackendConfig().dataProvider === 'cloudbase') {
+    await upsertCloudProduct(nextProduct)
+    const productIndex = db.products.findIndex((item) => item.id === id)
+    if (productIndex >= 0) {
+      db.products.splice(productIndex, 1, nextProduct)
+    }
+  } else {
+    const nextDb = await withDb((current) => {
+      const currentProduct = getStoredProductById(current, id)
+      currentProduct.status = status
+      currentProduct.updatedAt = nextProduct.updatedAt
+      return current
+    })
+    db.products = nextDb.products
+  }
+
+  return {
+    success: true,
+    product: createProductCard(nextProduct, getFavoriteIds(db, user.id)),
+    summary: buildGlobalSummary(db, user),
+  }
+}
+
+async function deleteProduct(headers, id) {
+  const { db, user, openid } = await requireAuthenticatedUser(headers)
+  const product = getStoredProductById(db, id)
+  if (!product) {
+    throw createServiceError(404, 'NOT_FOUND', 'Product not found', { productId: id })
+  }
+  ensureProductOwner(product, user)
+
+  if (readBackendConfig().dataProvider === 'cloudbase') {
+    await removeCloudProduct(id)
+    db.products = db.products.filter((item) => item.id !== id)
+    db.favorites = db.favorites.filter((item) => item.productId !== id)
+    db.recentViews = db.recentViews.filter((item) => item.productId !== id)
+  } else {
+    const nextDb = await withDb((current) => {
+      current.products = current.products.filter((item) => item.id !== id)
+      current.favorites = current.favorites.filter((item) => item.productId !== id)
+      current.recentViews = current.recentViews.filter((item) => item.productId !== id)
+      return current
+    })
+    db.products = nextDb.products
+    db.favorites = nextDb.favorites
+    db.recentViews = nextDb.recentViews
+  }
+
+  return {
+    success: true,
+    deletedProductId: id,
+    summary: buildGlobalSummary(db, user),
+  }
+}
+
 async function getMessagesPage(headers, activeTab = 'conversation') {
-  const db = await readDbWithUser(headers)
-  const user = getUserByOpenid(db, getCurrentUserFromHeaders(headers))
+  const { db, user } = await requireAuthenticatedUser(headers)
   const normalizedTab = validateMessageTab(activeTab)
-  const tradeReadIds = getReadIds(db, user.id, 'trade')
-  const systemReadIds = getReadIds(db, user.id, 'system')
 
   const listMap = {
     conversation: buildConversationList(db, user),
-    trade: db.tradeNotifications.map((item) => ({
-      ...item,
-      avatarText: item.type.slice(0, 1),
-      unread: tradeReadIds.includes(item.id) ? 0 : item.unread,
-    })),
-    system: db.systemNotifications.map((item) => ({
-      ...item,
-      avatarText: item.type.slice(0, 1),
-      unread: systemReadIds.includes(item.id) ? 0 : item.unread,
-    })),
+    trade: buildNotificationList(db.tradeNotifications, getReadIds(db, user.id, 'trade')),
+    system: buildNotificationList(db.systemNotifications, getReadIds(db, user.id, 'system')),
   }
 
   return {
@@ -766,22 +1218,44 @@ async function getMessagesPage(headers, activeTab = 'conversation') {
 
 async function markMessageAsRead(headers, body = {}) {
   const { type, id } = validateMessageReadBody(body)
-  const db = await withDb((current) => {
-    const user = ensureUser(current, getCurrentUserFromHeaders(headers))
-    const exists = current.messageReads.find(
+  const { openid } = await requireAuthenticatedUser(headers)
+  let db
+
+  if (readBackendConfig().dataProvider === 'cloudbase') {
+    const context = await requireAuthenticatedUser(headers)
+    db = context.db
+    const user = context.user
+    const exists = db.messageReads.find(
       (item) => item.userId === user.id && item.type === type && item.targetId === id
     )
     if (!exists) {
-      current.messageReads.unshift({
+      const nextRead = {
         userId: user.id,
         type,
         targetId: id,
         readAt: getNowIso(),
-      })
+      }
+      await upsertCloudMessageRead(nextRead)
+      db.messageReads.unshift(nextRead)
     }
-    return current
-  })
-  const user = getUserByOpenid(db, getCurrentUserFromHeaders(headers))
+  } else {
+    db = await withDb((current) => {
+      const user = ensureUser(current, openid)
+      const exists = current.messageReads.find(
+        (item) => item.userId === user.id && item.type === type && item.targetId === id
+      )
+      if (!exists) {
+        current.messageReads.unshift({
+          userId: user.id,
+          type,
+          targetId: id,
+          readAt: getNowIso(),
+        })
+      }
+      return current
+    })
+  }
+  const user = getUserByOpenid(db, openid)
 
   return {
     success: true,
@@ -790,57 +1264,60 @@ async function markMessageAsRead(headers, body = {}) {
 }
 
 async function getChatDetail(headers, conversationId) {
-  const db = await withDb((current) => {
-    const user = ensureUser(current, getCurrentUserFromHeaders(headers))
-    const exists = current.messageReads.find(
+  const config = readBackendConfig()
+  const auth = await requireAuthenticatedUser(headers)
+  const { openid } = auth
+  let db
+
+  if (config.dataProvider === 'cloudbase') {
+    db = auth.db
+    const user = auth.user
+    const exists = db.messageReads.find(
       (item) => item.userId === user.id && item.type === 'conversation' && item.targetId === conversationId
     )
     if (!exists) {
-      current.messageReads.unshift({
+      const nextRead = {
         userId: user.id,
         type: 'conversation',
         targetId: conversationId,
         readAt: getNowIso(),
-      })
+      }
+      await upsertCloudMessageRead(nextRead)
+      db.messageReads.unshift(nextRead)
     }
-    return current
-  })
-  const user = getUserByOpenid(db, getCurrentUserFromHeaders(headers))
-  const conversation = db.conversations.find((item) => item.id === conversationId)
-  if (!conversation) {
+  } else {
+    db = await withDb((current) => {
+      const user = ensureUser(current, openid)
+      const exists = current.messageReads.find(
+        (item) => item.userId === user.id && item.type === 'conversation' && item.targetId === conversationId
+      )
+      if (!exists) {
+        current.messageReads.unshift({
+          userId: user.id,
+          type: 'conversation',
+          targetId: conversationId,
+          readAt: getNowIso(),
+        })
+      }
+      return current
+    })
+  }
+
+  const user = getUserByOpenid(db, openid)
+  const thread = buildChatThread(db, user, conversationId)
+  if (!thread) {
     return null
   }
 
-  const relatedProduct = getProductById(db, conversation.relatedProductId)
-  const messages = db.messages
-    .filter((item) => item.conversationId === conversationId)
-    .sort((left, right) => {
-      if (left.order !== right.order) {
-        return left.order - right.order
-      }
-      return new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime()
-    })
-    .map((item) => ({
-      id: item.id,
-      type: item.type,
-      from: item.from,
-      content: item.content,
-      time: item.time || '刚刚',
-      product: item.productId ? createProductCard(getProductById(db, item.productId), getFavoriteIds(db, user.id)) : null,
-    }))
-
   return {
-    id: conversation.id,
-    title: conversation.user.name,
-    subtitle: conversation.user.subtitle,
-    user: conversation.user,
-    relatedProduct: relatedProduct ? createProductCard(relatedProduct, getFavoriteIds(db, user.id)) : null,
-    messages,
+    ...thread,
+    summary: buildGlobalSummary(db, user),
   }
 }
 
 async function sendChatMessage(headers, conversationId, body = {}) {
   const { content } = validateConversationMessageBody(body)
+  const { openid } = await requireAuthenticatedUser(headers)
 
   const db = await withDb((current) => {
     const conversation = current.conversations.find((item) => item.id === conversationId)
@@ -866,14 +1343,13 @@ async function sendChatMessage(headers, conversationId, body = {}) {
 
   return {
     success: true,
-    thread: await getChatDetail(headers, conversationId),
+    thread: buildChatThread(db, user, conversationId),
     summary: buildGlobalSummary(db, user),
   }
 }
 
 async function getProfilePage(headers) {
-  const db = await readDbWithUser(headers)
-  const user = getUserByOpenid(db, getCurrentUserFromHeaders(headers))
+  const { db, user } = await requireAuthenticatedUser(headers)
   const favoriteIds = getFavoriteIds(db, user.id)
   const recentViewIds = db.recentViews
     .filter((item) => item.userId === user.id)
@@ -895,18 +1371,25 @@ async function getProfilePage(headers) {
     menuItems: db.dictionaries.profileMenuItems,
     policyHighlights: db.dictionaries.policyHighlights,
     favoriteProducts: getProductsByIds(db, favoriteIds).slice(0, 4).map((item) => createProductCard(item, favoriteIds)),
-    recentViews: getProductsByIds(db, recentViewIds).map((item) => createProductCard(item, favoriteIds)),
+    recentViews: getProductsByIds(db, recentViewIds.slice(0, 8)).map((item) => createProductCard(item, favoriteIds)),
     latestPublished: publishedProducts.slice(0, 2).map((item) => createProductCard(item, favoriteIds)),
   }
 }
 
 async function clearProfileRecentViews(headers) {
-  const db = await withDb((current) => {
-    const user = ensureUser(current, getCurrentUserFromHeaders(headers))
-    current.recentViews = current.recentViews.filter((item) => item.userId !== user.id)
-    return current
-  })
-  const user = getUserByOpenid(db, getCurrentUserFromHeaders(headers))
+  const { db, user, openid } = await requireAuthenticatedUser(headers)
+
+  if (readBackendConfig().dataProvider === 'cloudbase') {
+    await clearCloudRecentViews(user.id)
+    db.recentViews = db.recentViews.filter((item) => item.userId !== user.id)
+  } else {
+    const nextDb = await withDb((current) => {
+      const currentUser = ensureUser(current, openid)
+      current.recentViews = current.recentViews.filter((item) => item.userId !== currentUser.id)
+      return current
+    })
+    db.recentViews = nextDb.recentViews
+  }
 
   return {
     success: true,
@@ -915,14 +1398,13 @@ async function clearProfileRecentViews(headers) {
 }
 
 async function getNavigationSummary(headers) {
-  const db = await readDbWithUser(headers)
-  const user = getUserByOpenid(db, getCurrentUserFromHeaders(headers))
+  const { db, user } = await requireAuthenticatedUser(headers)
   return buildGlobalSummary(db, user)
 }
 
 async function resetThreadStore() {
   const db = await resetDb()
-  const user = getUserByOpenid(db, DEMO_OPENID)
+  const user = ensureUser(db, DEMO_OPENID)
   return {
     success: true,
     summary: buildGlobalSummary(db, user),
@@ -939,8 +1421,9 @@ function saveUploadedFile(file) {
 }
 
 async function registerUpload(headers, file, host) {
+  const { openid } = await requireAuthenticatedUser(headers)
   const db = await withDb((current) => {
-    const user = ensureUser(current, getCurrentUserFromHeaders(headers))
+    const user = ensureUser(current, openid)
     const filename = saveUploadedFile(file)
     const url = `${host}/uploads/${filename}`
     current.uploads.unshift({
@@ -964,6 +1447,7 @@ module.exports = {
   UPLOADS_DIR,
   bootstrapApp,
   clearProfileRecentViews,
+  deleteProduct,
   getChatDetail,
   getCurrentUserFromHeaders,
   getHomeData,
@@ -978,5 +1462,7 @@ module.exports = {
   resetThreadStore,
   sendChatMessage,
   submitProduct,
+  updateProduct,
+  updateProductStatus,
   toggleProductFavorite,
 }

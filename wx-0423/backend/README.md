@@ -9,6 +9,7 @@ npm run backend:start
 ```
 
 Default base URL: `http://127.0.0.1:4000`
+Default local mode: `local-file`
 
 ## Environment Profiles
 
@@ -24,6 +25,8 @@ Recommended commands:
 npm run backend:start:file
 npm run backend:start:cloud
 ```
+
+`npm run backend:start` now forces local file mode so the miniapp can boot without CloudBase credentials or collection bootstrap.
 
 `backend/.env` is the only local secret source. `backend/.env.example` must remain placeholder-only.
 
@@ -124,7 +127,7 @@ When `DATA_PROVIDER=cloudbase`, the backend reads and writes the following Cloud
 `services/http/config.js` now selects a profile automatically:
 
 - Miniapp `release` runtime uses `prod-cloudbase`
-- all other runtimes default to `local-cloudbase`
+- all other runtimes default to `local-file`
 
 Available frontend profiles:
 

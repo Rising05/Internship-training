@@ -58,6 +58,7 @@
           <view class="mini-content">
             <text class="mini-title">{{item.title}}</text>
             <text class="mini-meta">{{item.idolDisplayName || item.idol}} · {{item.category}}</text>
+            <text wx:if="{{item.status !== 'active'}}" class="mini-status mini-status-{{item.statusTone}}">{{item.statusLabel}}</text>
             <text class="mini-price">¥{{item.price}}</text>
           </view>
         </view>
@@ -74,6 +75,7 @@
           <view class="mini-content">
             <text class="mini-title">{{item.title}}</text>
             <text class="mini-meta">{{item.idolDisplayName || item.idol}} · {{item.category}}</text>
+            <text wx:if="{{item.status !== 'active'}}" class="mini-status mini-status-{{item.statusTone}}">{{item.statusLabel}}</text>
             <text class="mini-price">¥{{item.price}}</text>
           </view>
         </view>
@@ -96,6 +98,7 @@
           <view class="mini-content">
             <text class="mini-title">{{item.title}}</text>
             <text class="mini-meta">{{item.tradeType}} · {{item.condition}}</text>
+            <text wx:if="{{item.status !== 'active'}}" class="mini-status mini-status-{{item.statusTone}}">{{item.statusLabel}}</text>
             <text class="mini-price">¥{{item.price}}</text>
           </view>
         </view>

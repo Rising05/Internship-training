@@ -22,6 +22,7 @@ const {
 } = require('../../utils/mock')
 const { normalizeIdolPayload } = require('../../utils/idol')
 const {
+  STORAGE_KEYS,
   ensureStorageDefaults,
   getFavorites,
   toggleFavorite,
@@ -40,6 +41,14 @@ const {
   setChatThreads,
   appendChatMessage,
 } = require('../../utils/storage')
+
+const PRODUCT_CARD_PREVIEW = '发来了一张商品卡片'
+const PRODUCT_STATUS_META = {
+  active: { label: '在售', tone: 'active', description: '商品正在展示中，可继续沟通与成交。', canPurchase: true },
+  reserved: { label: '已预留', tone: 'reserved', description: '商品已被预留，仍可进入聊天查看进度。', canPurchase: false },
+  sold: { label: '已售出', tone: 'sold', description: '商品已完成成交，仅保留记录与会话。', canPurchase: false },
+  hidden: { label: '已下架', tone: 'hidden', description: '商品已从首页隐藏，仅发布者可查看。', canPurchase: false },
+}
 
 function simulate(data, options = {}) {
   const delay = typeof options.delay === 'number' ? options.delay : 80
@@ -71,7 +80,7 @@ function buildHomeBanners() {
       subtitle: '后续可直接接运营活动与限时专区',
       image: '/static/image/cropped/home-hero-cover.jpg',
       targetType: 'navigate',
-      targetUrl: '/package-sub/detail/detail?id=xc001',
+      targetUrl: '/pages/detail/detail?id=xc001',
       ctaText: '查看专题',
       enabled: true,
       sort: 20,
@@ -106,8 +115,27 @@ function getAllProducts() {
   return [...getPublishedProducts(), ...products]
 }
 
+function getVisibleProducts() {
+  return getAllProducts().filter((item) => item.status !== 'hidden')
+}
+
 function getProductById(id) {
   return getAllProducts().find((item) => item.id === id) || null
+}
+
+function getProductStatusMeta(status) {
+  return PRODUCT_STATUS_META[status] || PRODUCT_STATUS_META.active
+}
+
+function syncProfileProductStats(nextPublishedProducts = getPublishedProducts()) {
+  const profile = getProfile()
+  const visiblePublishedCount = nextPublishedProducts.filter((item) => item.status !== 'hidden').length
+  const soldCount = nextPublishedProducts.filter((item) => item.status === 'sold').length
+  setProfile({
+    ...profile,
+    publishedCount: visiblePublishedCount,
+    soldCount,
+  })
 }
 
 function getProductsByIds(ids = []) {
@@ -134,10 +162,42 @@ function getMergedThreads() {
   return merged
 }
 
+function getThreadLastMessage(thread) {
+  return thread && Array.isArray(thread.messages) && thread.messages.length
+    ? thread.messages[thread.messages.length - 1]
+    : null
+}
+
+function getMessagePreviewText(message, fallback = '') {
+  if (!message) {
+    return fallback
+  }
+
+  return message.type === 'product' ? PRODUCT_CARD_PREVIEW : (message.content || fallback)
+}
+
+function sumUnreadCount(list = []) {
+  return list.reduce((result, item) => result + (Number(item.unread) || 0), 0)
+}
+
+function buildNotificationList(items = [], type) {
+  const readIds = getMessageState()[`${type}ReadIds`] || []
+
+  return items.map((item) => ({
+    ...item,
+    avatarText: item.type.slice(0, 1),
+    unread: readIds.includes(item.id) ? 0 : item.unread,
+  }))
+}
+
 function createProductCard(product, favorites) {
+  const statusMeta = getProductStatusMeta(product.status)
   return {
     ...product,
     isFavorite: favorites.includes(product.id),
+    statusLabel: statusMeta.label,
+    statusTone: statusMeta.tone,
+    canPurchase: statusMeta.canPurchase,
     seller: {
       avatarText: '星',
       ...product.seller,
@@ -153,15 +213,23 @@ function getGlobalSummarySync() {
   const favorites = getFavorites()
   const recentViews = getRecentViews()
   const profile = getProfile()
-  const messageState = getMessageState()
-  const unreadConversationCount = getConversationListSync().filter(
-    (item) => !messageState.conversationReadIds.includes(item.id) && item.unread
-  ).length
+  const conversationList = getConversationListSync()
+  const tradeList = buildNotificationList(tradeNotifications, 'trade')
+  const systemList = buildNotificationList(systemMessages, 'system')
+  const unreadConversationCount = sumUnreadCount(conversationList)
+  const unreadTradeCount = sumUnreadCount(tradeList)
+  const unreadSystemCount = sumUnreadCount(systemList)
 
   return {
     favoriteCount: favorites.length,
     recentCount: recentViews.length,
+    unreadCount: unreadConversationCount + unreadTradeCount + unreadSystemCount,
     unreadConversationCount,
+    unreadDetail: {
+      conversation: unreadConversationCount,
+      trade: unreadTradeCount,
+      system: unreadSystemCount,
+    },
     publishedCount: profile.publishedCount,
   }
 }
@@ -170,18 +238,37 @@ function getConversationListSync() {
   const messageState = getMessageState()
   const favorites = getFavorites()
   const threads = getMergedThreads()
+  const conversationOrder = conversationMessages.reduce((result, item, index) => {
+    result[item.id] = index
+    return result
+  }, {})
 
-  return conversationMessages.map((item) => {
+  return conversationMessages.slice().sort((left, right) => {
+    const leftThread = threads[left.id]
+    const rightThread = threads[right.id]
+    const leftTimestamp = Date.parse((leftThread && leftThread.updatedAt) || '')
+    const rightTimestamp = Date.parse((rightThread && rightThread.updatedAt) || '')
+    const leftHasTimestamp = Number.isFinite(leftTimestamp)
+    const rightHasTimestamp = Number.isFinite(rightTimestamp)
+
+    if (leftHasTimestamp && rightHasTimestamp && leftTimestamp !== rightTimestamp) {
+      return rightTimestamp - leftTimestamp
+    }
+
+    if (leftHasTimestamp !== rightHasTimestamp) {
+      return leftHasTimestamp ? -1 : 1
+    }
+
+    return conversationOrder[left.id] - conversationOrder[right.id]
+  }).map((item) => {
     const thread = threads[item.id]
-    const lastMessage = thread && thread.messages.length ? thread.messages[thread.messages.length - 1] : null
+    const lastMessage = getThreadLastMessage(thread)
     const relatedProduct = getProductById(item.relatedProductId)
-    const previewText = lastMessage
-      ? (lastMessage.type === 'product' ? '发来了一张商品卡片' : lastMessage.content)
-      : item.content
 
     return {
       ...item,
-      content: previewText,
+      content: getMessagePreviewText(lastMessage, item.content),
+      time: lastMessage ? (lastMessage.time || '刚刚') : item.time,
       unread: messageState.conversationReadIds.includes(item.id) ? 0 : item.unread,
       avatarText: item.initial || item.name.slice(0, 1),
       isFavoriteProduct: relatedProduct ? favorites.includes(relatedProduct.id) : false,
@@ -232,7 +319,7 @@ function getHomeData(params = {}) {
   const normalizedSolo = activeSolo.trim().toLowerCase()
   const normalizedCategory = activeCategory.trim().toLowerCase()
 
-  let filtered = sortProductsByCreatedAt(getAllProducts()).filter((item) => {
+  let filtered = sortProductsByCreatedAt(getVisibleProducts()).filter((item) => {
     const keywordTarget = [
       item.title,
       item.idolDisplayName,
@@ -262,7 +349,7 @@ function getHomeData(params = {}) {
     return matchKeyword && matchIdol && matchCategory && matchFeed
   })
 
-  const totalCount = getAllProducts().length
+  const totalCount = getVisibleProducts().length
   const matchedCount = filtered.length
   const startIndex = (pageIndex - 1) * pageSize
   const endIndex = startIndex + pageSize
@@ -292,16 +379,26 @@ function getProductDetail(id) {
 
   addRecentView(product)
 
+  const favorites = getFavorites()
+  const statusMeta = getProductStatusMeta(product.status)
+
   return simulate({
-    ...createProductCard(product, getFavorites()),
+    ...createProductCard(product, favorites),
     seller: {
       ...product.seller,
       publishedCount: 12,
       responseRate: '95%',
     },
+    isOwner: product.ownerUserId === getProfile().id,
+    statusDescription: statusMeta.description,
+    relatedProducts: sortProductsByCreatedAt(getVisibleProducts())
+      .filter((item) => item.id !== product.id)
+      .filter((item) => item.category === product.category || item.idolDisplayName === product.idolDisplayName)
+      .slice(0, 4)
+      .map((item) => createProductCard(item, favorites)),
     policies: [
       '支持私聊沟通细节与补图',
-      '正式购买流程将在后端接入后开放',
+      '支持商品状态管理、上下架与已售标记',
       '请在确认品相与价格后再发起交易',
     ],
   })
@@ -372,14 +469,13 @@ function submitProduct(payload) {
     isHot: false,
     isLatest: true,
     conversationId: 'conv001',
+    ownerUserId: profile.id,
+    status: 'active',
     createdAt: new Date().toISOString(),
   })
 
   addPublishedProduct(nextProduct)
-  setProfile({
-    ...profile,
-    publishedCount: profile.publishedCount + 1,
-  })
+  syncProfileProductStats(getPublishedProducts())
 
   return simulate({
     success: true,
@@ -388,19 +484,58 @@ function submitProduct(payload) {
   }, { delay: 180 })
 }
 
+function updateProduct(id, payload = {}) {
+  const target = getPublishedProducts().find((item) => item.id === id)
+  if (!target) {
+    return simulate(null)
+  }
+
+  Object.assign(target, normalizeIdolPayload({
+    ...target,
+    ...payload,
+  }))
+  syncProfileProductStats(getPublishedProducts())
+
+  return simulate({
+    success: true,
+    product: createProductCard(target, getFavorites()),
+    summary: getGlobalSummarySync(),
+  }, { delay: 80 })
+}
+
+function updateProductStatus(id, status) {
+  const target = getPublishedProducts().find((item) => item.id === id)
+  if (!target) {
+    return simulate(null)
+  }
+
+  target.status = status
+  syncProfileProductStats(getPublishedProducts())
+  return simulate({
+    success: true,
+    product: createProductCard(target, getFavorites()),
+    summary: getGlobalSummarySync(),
+  }, { delay: 60 })
+}
+
+function deleteProduct(id) {
+  const nextPublished = getPublishedProducts().filter((item) => item.id !== id)
+  wx.setStorageSync(STORAGE_KEYS.publishedProducts, nextPublished)
+  wx.setStorageSync(STORAGE_KEYS.favorites, getFavorites().filter((item) => item !== id))
+  wx.setStorageSync(STORAGE_KEYS.recentViews, getRecentViews().filter((item) => item.id !== id))
+  syncProfileProductStats(nextPublished)
+  return simulate({
+    success: true,
+    deletedProductId: id,
+    summary: getGlobalSummarySync(),
+  }, { delay: 80 })
+}
+
 function getMessagesPageData(activeTab = 'conversation') {
   const sourceMap = {
     conversation: getConversationListSync(),
-    trade: tradeNotifications.map((item) => ({
-      ...item,
-      avatarText: item.type.slice(0, 1),
-      unread: getMessageState().tradeReadIds.includes(item.id) ? 0 : item.unread,
-    })),
-    system: systemMessages.map((item) => ({
-      ...item,
-      avatarText: item.type.slice(0, 1),
-      unread: getMessageState().systemReadIds.includes(item.id) ? 0 : item.unread,
-    })),
+    trade: buildNotificationList(tradeNotifications, 'trade'),
+    system: buildNotificationList(systemMessages, 'system'),
   }
 
   return simulate({
@@ -440,6 +575,7 @@ function getChatDetail(conversationId) {
       ...item,
       product: item.productId ? createProductCard(getProductById(item.productId) || getBaseProductById(item.productId), getFavorites()) : null,
     })),
+    summary: getGlobalSummarySync(),
   })
 }
 
@@ -459,7 +595,14 @@ function sendChatMessage(conversationId, content) {
 
   return getChatDetail(conversationId).then((data) => ({
     success: true,
-    thread: data,
+    thread: data ? {
+      id: data.id,
+      title: data.title,
+      subtitle: data.subtitle,
+      user: data.user,
+      relatedProduct: data.relatedProduct,
+      messages: data.messages,
+    } : null,
     summary: getGlobalSummarySync(),
   }))
 }
@@ -510,6 +653,9 @@ module.exports = {
   bootstrapApp,
   getHomeData,
   getProductDetail,
+  updateProduct,
+  updateProductStatus,
+  deleteProduct,
   toggleProductFavorite,
   getPublishPageData,
   submitProduct,

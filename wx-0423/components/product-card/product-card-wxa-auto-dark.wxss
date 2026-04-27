@@ -1,0 +1,79 @@
+/* 
+此文件为开发者工具生成，生成时间: 2026/4/27上午10:15:31
+使用方法：
+在 product-card.wxss 文件末尾引入样式
+```
+@import "./product-card-wxa-auto-dark.wxss";
+```
+ */
+
+@media (prefers-color-scheme: dark) {
+    .product-card {
+        background: rgba(17, 17, 17, 0.96);
+    }
+
+    .cover {
+        background: rgb(43, 25, 32);
+    }
+
+    .cover-badge {
+        background: rgba(17, 17, 17, 0.88);
+        color: rgb(189, 13, 96);
+    }
+
+    .status-badge {
+        color: rgb(17, 17, 17);
+    }
+
+    .status-badge-reserved {
+        background: rgba(158, 100, 0, 0.86);
+    }
+
+    .status-badge-sold {
+        background: rgba(148, 135, 208, 0.9);
+    }
+
+    .status-badge-hidden {
+        background: rgba(162, 140, 153, 0.88);
+    }
+
+    .title {
+        color: rgb(234, 210, 222);
+    }
+
+    .mini-badge {
+        background: rgb(33, 22, 26);
+        color: rgb(189, 13, 96);
+    }
+
+    .badge-secondary {
+        background: rgb(28, 22, 9);
+        color: rgb(128, 47, 0);
+    }
+
+    .tag {
+        background: rgb(31, 23, 27);
+        color: rgb(131, 115, 124);
+    }
+
+    .price {
+        color: rgb(189, 13, 96);
+    }
+
+    .condition {
+        color: rgb(131, 115, 124);
+    }
+
+    .seller-row {
+        color: rgb(118, 101, 110);
+    }
+
+    .seller-chip {
+        background: rgb(0, 0, 0);
+        color: rgb(17, 17, 17);
+    }
+
+    .seller-name {
+        color: rgb(169, 147, 158);
+    }
+}

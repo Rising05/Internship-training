@@ -1,3 +1,5 @@
+const { requireLogin } = require('../utils/auth')
+
 Component({
   data: {
     selected: '/pages/index/index',
@@ -44,7 +46,22 @@ Component({
 
     switchTab(event) {
       const { path } = event.currentTarget.dataset
-      if (!path || path === this.data.selected) {
+      if (!path) {
+        return
+      }
+
+      if (path !== '/pages/index/index') {
+        const allowAccess = requireLogin({
+          targetType: 'tab',
+          targetUrl: path,
+          reason: '登录后即可使用发布、消息和个人中心',
+        })
+        if (!allowAccess) {
+          return
+        }
+      }
+
+      if (path === this.data.selected) {
         return
       }
 

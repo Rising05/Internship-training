@@ -1,6 +1,7 @@
 <view class="product-card" bindtap="handleOpen">
   <image class="cover" src="{{coverSrc}}" mode="aspectFill" binderror="handleCoverError"></image>
   <view class="cover-badge">{{product.tradeType}}</view>
+  <view wx:if="{{product.status !== 'active'}}" class="status-badge status-badge-{{product.statusTone}}">{{product.statusLabel}}</view>
   <view class="content">
     <view class="badge-row">
       <text class="mini-badge">{{product.idolDisplayName || product.idol}}</text>

@@ -1,5 +1,5 @@
 const { request, uploadImages } = require('./request')
-const { submitTimeout } = require('./config')
+const { submitTimeout, authTimeout } = require('./config')
 const { getAuthSession, setAuthSession } = require('../../utils/storage')
 
 function getWechatLoginCode() {
@@ -21,6 +21,10 @@ function getWechatLoginCode() {
 }
 
 async function ensureSession() {
+  return getAuthSession()
+}
+
+async function loginWithWeChat() {
   const current = getAuthSession()
   if (current && current.loggedIn && current.openid) {
     return current
@@ -30,6 +34,7 @@ async function ensureSession() {
   const session = await request({
     url: '/auth/wechat/login',
     method: 'POST',
+    timeout: authTimeout,
     data: {
       code,
     },
@@ -55,6 +60,32 @@ function getHomeData(params = {}) {
 function getProductDetail(id) {
   return request({
     url: `/products/${id}`,
+  })
+}
+
+function updateProduct(id, payload) {
+  return request({
+    url: `/products/${id}`,
+    method: 'PATCH',
+    timeout: submitTimeout,
+    data: payload,
+  })
+}
+
+function updateProductStatus(id, status) {
+  return request({
+    url: `/products/${id}/status`,
+    method: 'POST',
+    data: {
+      status,
+    },
+  })
+}
+
+function deleteProduct(id) {
+  return request({
+    url: `/products/${id}`,
+    method: 'DELETE',
   })
 }
 
@@ -150,9 +181,13 @@ function resetThreadStore() {
 
 module.exports = {
   ensureSession,
+  loginWithWeChat,
   bootstrapApp,
   getHomeData,
   getProductDetail,
+  updateProduct,
+  updateProductStatus,
+  deleteProduct,
   toggleProductFavorite,
   getPublishPageData,
   submitProduct,

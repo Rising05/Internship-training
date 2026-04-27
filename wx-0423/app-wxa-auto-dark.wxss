@@ -1,0 +1,38 @@
+/* 
+此文件为开发者工具生成，生成时间: 2026/4/27上午10:15:31
+使用方法：
+在 app.wxss 文件末尾引入样式
+```
+@import "./app-wxa-auto-dark.wxss";
+```
+ */
+
+@media (prefers-color-scheme: dark) {
+    page {
+        background: rgb(0, 0, 0);
+        color: rgb(223, 199, 211);
+        --xc-primary: rgb(189, 13, 96);
+        --xc-primary-soft: rgb(32, 22, 26);
+        --xc-primary-deep: rgb(149, 32, 84);
+        --xc-text: rgb(225, 203, 215);
+        --xc-subtle: rgb(121, 102, 114);
+        --xc-card: rgba(17, 17, 17, 0.92);
+    }
+
+    .pill-tag {
+        background: rgb(32, 22, 26);
+    }
+
+    .ghost-button {
+        border: rgb(0, 0, 0);
+        background: rgb(17, 17, 17);
+    }
+
+    .primary-button {
+        color: rgb(17, 17, 17);
+    }
+
+    .soft-card {
+        background: rgba(17, 17, 17, 0.78);
+    }
+}

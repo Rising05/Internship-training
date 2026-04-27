@@ -12,3 +12,5 @@
   color: #ffffff;
   box-shadow: 0 12rpx 20rpx rgba(255, 93, 151, 0.18);
 }
+
+@import "./filter-chip-wxa-auto-dark.wxss";

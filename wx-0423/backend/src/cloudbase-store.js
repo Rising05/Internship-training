@@ -602,6 +602,156 @@ async function writeCloudSnapshot(snapshot, options = {}) {
   return snapshot
 }
 
+async function removeCloudDocuments(collectionName, predicate) {
+  await ensureCloudbaseCollections()
+  const db = getCloudbaseDb()
+  const documents = await getCollectionDocuments(db, collectionName)
+  const matchedIds = documents.filter(predicate).map((item) => item._id)
+
+  for (const documentId of matchedIds) {
+    await withCloudbaseTimeout(
+      db.collection(collectionName).doc(documentId).remove(),
+      `remove ${collectionName}/${documentId}`
+    )
+  }
+
+  return matchedIds.length
+}
+
+async function upsertCloudMessageRead(entry = {}) {
+  await ensureCloudbaseCollections()
+  const db = getCloudbaseDb()
+  const documentId = getDocumentId(
+    'message-read',
+    entry.id || createStableId('message-read', entry.userId, entry.type, entry.targetId)
+  )
+  const payload = {
+    userId: entry.userId,
+    type: entry.type,
+    targetId: entry.targetId,
+    readAt: entry.readAt,
+  }
+
+  await withCloudbaseTimeout(
+    db.collection(COLLECTION_NAMES.messageReads).doc(documentId).set(payload),
+    `upsert ${COLLECTION_NAMES.messageReads}/${documentId}`
+  )
+
+  return {
+    id: documentId,
+    ...payload,
+  }
+}
+
+async function upsertCloudFavorite(entry = {}) {
+  await ensureCloudbaseCollections()
+  const db = getCloudbaseDb()
+  const documentId = getDocumentId(
+    'favorite',
+    entry.id || createStableId('favorite', entry.userId, entry.productId)
+  )
+  const payload = {
+    userId: entry.userId,
+    productId: entry.productId,
+    createdAt: entry.createdAt,
+  }
+
+  await withCloudbaseTimeout(
+    db.collection(COLLECTION_NAMES.favorites).doc(documentId).set(payload),
+    `upsert ${COLLECTION_NAMES.favorites}/${documentId}`
+  )
+
+  return {
+    id: documentId,
+    ...payload,
+  }
+}
+
+async function upsertCloudUser(user = {}) {
+  await ensureCloudbaseCollections()
+  const db = getCloudbaseDb()
+  const document = serializeUsers([user])[0]
+  const payload = { ...document }
+  delete payload._id
+
+  await withCloudbaseTimeout(
+    db.collection(COLLECTION_NAMES.users).doc(document._id).set(payload),
+    `upsert ${COLLECTION_NAMES.users}/${document._id}`
+  )
+
+  return {
+    id: document._id,
+    ...user,
+  }
+}
+
+async function removeCloudFavorite(userId, productId) {
+  return removeCloudDocuments(
+    COLLECTION_NAMES.favorites,
+    (item) => item.userId === userId && item.productId === productId
+  )
+}
+
+async function upsertCloudRecentView(entry = {}) {
+  await ensureCloudbaseCollections()
+  const db = getCloudbaseDb()
+  const documentId = getDocumentId(
+    'recent-view',
+    entry.id || createStableId('recent-view', entry.userId, entry.productId)
+  )
+  const payload = {
+    userId: entry.userId,
+    productId: entry.productId,
+    viewedAt: entry.viewedAt,
+  }
+
+  await withCloudbaseTimeout(
+    db.collection(COLLECTION_NAMES.recentViews).doc(documentId).set(payload),
+    `upsert ${COLLECTION_NAMES.recentViews}/${documentId}`
+  )
+
+  return {
+    id: documentId,
+    ...payload,
+  }
+}
+
+async function clearCloudRecentViews(userId) {
+  return removeCloudDocuments(
+    COLLECTION_NAMES.recentViews,
+    (item) => item.userId === userId
+  )
+}
+
+async function upsertCloudProduct(product = {}) {
+  await ensureCloudbaseCollections()
+  const db = getCloudbaseDb()
+  const document = serializeProducts([product])[0]
+  const payload = { ...document }
+  delete payload._id
+
+  await withCloudbaseTimeout(
+    db.collection(COLLECTION_NAMES.products).doc(document._id).set(payload),
+    `upsert ${COLLECTION_NAMES.products}/${document._id}`
+  )
+
+  return {
+    id: document._id,
+    ...product,
+  }
+}
+
+async function removeCloudProduct(productId) {
+  await ensureCloudbaseCollections()
+  const db = getCloudbaseDb()
+  await withCloudbaseTimeout(
+    db.collection(COLLECTION_NAMES.products).doc(productId).remove(),
+    `remove ${COLLECTION_NAMES.products}/${productId}`
+  )
+  await removeCloudDocuments(COLLECTION_NAMES.favorites, (item) => item.productId === productId)
+  await removeCloudDocuments(COLLECTION_NAMES.recentViews, (item) => item.productId === productId)
+}
+
 async function repairCloudSnapshot() {
   const merged = mergeWithSeed(await readRawCloudSnapshot())
   await writeCloudSnapshot(merged, { replaceExisting: true })
@@ -620,6 +770,14 @@ module.exports = {
   getCloudbaseDb,
   readCloudSnapshot,
   writeCloudSnapshot,
+  upsertCloudUser,
+  upsertCloudFavorite,
+  removeCloudFavorite,
+  upsertCloudRecentView,
+  clearCloudRecentViews,
+  upsertCloudProduct,
+  removeCloudProduct,
+  upsertCloudMessageRead,
   repairCloudSnapshot,
   ensureCloudbaseCollections,
 }
